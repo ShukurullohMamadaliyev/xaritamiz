@@ -40,7 +40,7 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
     shortLabel: 'Solo',
     emoji: '☕',
     src: '/music/solo.mp3',
-    sources: ['/music/solo.mp3'],
+    sources: ['/music/solo.mp3', '/music/solo2.mp3'],
   },
   night_city: {
     id: 'night_city',
