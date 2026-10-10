@@ -26,6 +26,9 @@ export async function POST(req: Request) {
 • <b>Tezkor Filtr:</b> Kim bilan, qanday kayfiyat va byudjetga mos 10 soniyada tayyor reja oling.
 • <b>Yaqin Joylar (Radar):</b> Turgan joyingizga eng yaqin maskanlarni masofasi bilan toping.
 
+📢 <b>Telegram kanal:</b> https://t.me/xaritamiz_rasmiy
+📸 <b>Instagram:</b> https://www.instagram.com/xaritamiz
+
 👇 <b>Bugun qayerga boramiz? Boshlash uchun quyidagi tugmani bosing:</b>`;
 
     const replyMarkup = {
@@ -34,6 +37,16 @@ export async function POST(req: Request) {
           {
             text: '🗺 Xaritamiz — Marshrut tuzish ✨',
             web_app: { url: WEBAPP_URL }
+          }
+        ],
+        [
+          {
+            text: '📢 Telegram kanal',
+            url: 'https://t.me/xaritamiz_rasmiy'
+          },
+          {
+            text: '📸 Instagram',
+            url: 'https://www.instagram.com/xaritamiz'
           }
         ]
       ]
@@ -46,6 +59,7 @@ export async function POST(req: Request) {
         chat_id: chatId,
         text: text ? welcomeHtml : welcomeHtml,
         parse_mode: 'HTML',
+        disable_web_page_preview: true,
         reply_markup: replyMarkup
       })
     });
