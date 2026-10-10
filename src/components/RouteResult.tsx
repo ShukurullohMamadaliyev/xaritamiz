@@ -184,7 +184,7 @@ export const RouteResult: React.FC<RouteResultProps> = ({
       <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 text-xs text-emerald-950 dark:text-emerald-200 flex items-center gap-3">
         <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
         <p className="leading-relaxed">
-          <b>Maslahat:</b> Har bir bekat ostidagi <b>Yandex Go, Uklon, WB, Fasten</b> yoki <b>MyTaxi</b> tugmalari orqali marshrutning aynan o‘sha nuqtasiga bir zumda taksi chaqirishingiz mumkin.
+          <b>Maslahat:</b> Har bir bekat ostidagi <b>Yandex Go</b> yoki <b>Uklon</b> tugmalari orqali marshrutning aynan o‘sha nuqtasiga bir zumda taksi chaqirishingiz mumkin.
         </p>
       </div>
 
