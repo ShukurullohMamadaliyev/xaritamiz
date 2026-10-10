@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, ThumbsUp, ThumbsDown, Send, CheckCircle2, MessageCircle, Share2, Copy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X, ThumbsUp, ThumbsDown, Send, CheckCircle2, MessageCircle, Copy } from 'lucide-react';
 import { RoutePlan } from '../types';
 import { triggerHaptic } from '../lib/utils';
 
@@ -30,8 +31,22 @@ export const PollModal: React.FC<PollModalProps> = ({
   });
 
   const [copiedLink, setCopiedLink] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
 
   const handleVote = (stopOrder: number, choice: 'yes' | 'no') => {
     triggerHaptic('medium');
@@ -87,9 +102,18 @@ export const PollModal: React.FC<PollModalProps> = ({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto space-y-5">
+  const modalContent = (
+    <div
+      onClick={() => {
+        triggerHaptic('light');
+        onClose();
+      }}
+      className="fixed inset-0 z-[100] w-screen h-[100dvh] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto space-y-5 max-h-[90dvh] flex flex-col"
+      >
         
         {/* Yopish tugmasi */}
         <button
@@ -223,4 +247,6 @@ export const PollModal: React.FC<PollModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
