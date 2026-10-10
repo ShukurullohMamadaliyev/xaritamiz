@@ -13,6 +13,7 @@ interface NavbarProps {
   onSurpriseClick: () => void;
   onReset: () => void;
   musicMood?: MusicMood;
+  moodRevision?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,7 +21,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleTheme,
   onSurpriseClick,
   onReset,
-  musicMood = 'welcome'
+  musicMood = 'welcome',
+  moodRevision = 0
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md border-b bg-white/85 dark:bg-[#0b0f19]/85 border-zinc-200/60 dark:border-slate-800 transition-colors">
@@ -62,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Kayfiyat Musiqasi Pleyeri */}
-          <MoodMusicPlayer mood={musicMood} />
+          <MoodMusicPlayer mood={musicMood} moodRevision={moodRevision} />
 
           {/* Roulette Button — emerald border pill */}
           <button

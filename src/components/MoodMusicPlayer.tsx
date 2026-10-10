@@ -7,6 +7,7 @@ import { triggerHaptic } from '../lib/utils';
 
 interface MoodMusicPlayerProps {
   mood: MusicMood;
+  moodRevision?: number;
   onChangeMood?: (mood: MusicMood) => void;
 }
 
@@ -14,13 +15,18 @@ const SOFT_BACKGROUND_VOLUME = 0.22;
 
 export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
   mood,
+  moodRevision = 0,
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showMoodToast, setShowMoodToast] = useState(false);
   const prevMoodRef = useRef<MusicMood>(mood);
+  const prevRevisionRef = useRef<number>(moodRevision);
   const userMutedRef = useRef(false);
+  const trackIndexMapRef = useRef<Record<string, number>>({
+    quiet_nature: 0,
+  });
 
   const track = MOOD_TRACKS[mood] || MOOD_TRACKS.welcome;
 
@@ -71,32 +77,66 @@ export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
     };
   }, []);
 
-  // Kayfiyat (mood) o'zgarganda trekni yangilash va bildirishnoma ko'rsatish
+  // Kayfiyat (mood) o'zgarganda yoki qayta tanlanganda (oilaviy uchun navbatma-navbat) trekni yangilash
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const nextTrack = MOOD_TRACKS[mood] || MOOD_TRACKS.welcome;
     const isDifferentMood = prevMoodRef.current !== mood;
+    const isRevisionChanged = prevRevisionRef.current !== moodRevision;
     prevMoodRef.current = mood;
+    prevRevisionRef.current = moodRevision;
 
-    if (isDifferentMood) {
-      setShowMoodToast(true);
-      const timer = setTimeout(() => setShowMoodToast(false), 3000);
+    if (!isDifferentMood && !isRevisionChanged) return;
 
-      audio.src = nextTrack.src;
-      audio.volume = SOFT_BACKGROUND_VOLUME;
-
-      if (!userMutedRef.current) {
-        audio
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => {});
-      }
-
-      return () => clearTimeout(timer);
+    // Agar ushbu kayfiyatda 1 tadan ko'p musiqa bo'lsa (masalan: oilaviy -> oilaviy.mp3 va welcome.mp3), navbat bilan almashtiramiz
+    let chosenSrc = nextTrack.src;
+    if (nextTrack.sources && nextTrack.sources.length > 1) {
+      const currentIdx = trackIndexMapRef.current[mood] ?? 0;
+      chosenSrc = nextTrack.sources[currentIdx % nextTrack.sources.length];
+      trackIndexMapRef.current[mood] = (currentIdx + 1) % nextTrack.sources.length;
+    } else if (!isDifferentMood) {
+      // Bitta musiqali bo'lim qayta bosilsa, o'zini davom ettiraveradi
+      return;
     }
-  }, [mood]);
+
+    setShowMoodToast(true);
+    const timer = setTimeout(() => setShowMoodToast(false), 3000);
+
+    audio.src = chosenSrc;
+    audio.volume = SOFT_BACKGROUND_VOLUME;
+
+    if (!userMutedRef.current) {
+      audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
+    }
+
+    return () => clearTimeout(timer);
+  }, [mood, moodRevision]);
+
+  // Qo'shiq tugaganda: agar 2 ta musiqa bo'lsa (oilaviy), ikkinchisiga o'tadi; 1 ta bo'lsa qaytadan boshlaydi
+  const handleTrackEnded = () => {
+    const audio = audioRef.current;
+    if (!audio || userMutedRef.current) return;
+
+    const currentTrackInfo = MOOD_TRACKS[mood] || MOOD_TRACKS.welcome;
+    if (currentTrackInfo.sources && currentTrackInfo.sources.length > 1) {
+      const idx = trackIndexMapRef.current[mood] ?? 0;
+      const nextSrc = currentTrackInfo.sources[idx % currentTrackInfo.sources.length];
+      trackIndexMapRef.current[mood] = (idx + 1) % currentTrackInfo.sources.length;
+      audio.src = nextSrc;
+    } else {
+      audio.currentTime = 0;
+    }
+    audio.volume = SOFT_BACKGROUND_VOLUME;
+    audio
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => {});
+  };
 
   const toggleMute = () => {
     triggerHaptic('light');
@@ -125,7 +165,7 @@ export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
       <audio
         ref={audioRef}
         src={MOOD_TRACKS.welcome.src}
-        loop
+        onEnded={handleTrackEnded}
         preload="metadata"
         playsInline
       />

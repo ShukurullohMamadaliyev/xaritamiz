@@ -26,6 +26,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'ai' | 'generator' | 'radar'>('ai');
   const [currentRoute, setCurrentRoute] = useState<RoutePlan | null>(null);
   const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
+  const [moodRevision, setMoodRevision] = useState<number>(0);
+
+  const handleMoodChange = (nextMood: MusicMood) => {
+    setMusicMood(nextMood);
+    setMoodRevision(prev => prev + 1);
+  };
   
   // Near Me orqali foydalanuvchi qo'shgan joylar
   const [savedStops, setSavedStops] = useState<LocationItem[]>([]);
@@ -81,7 +87,7 @@ export default function Home() {
         setLastFilters(filters);
         const autoRoute = generateRoute(filters);
         setCurrentRoute(autoRoute);
-        setMusicMood(detectMoodFromRoute(autoRoute));
+        handleMoodChange(detectMoodFromRoute(autoRoute));
       }
     }
   }, []);
@@ -104,7 +110,7 @@ export default function Home() {
     setLastFilters(filters);
     const newRoute = generateRoute(filters);
     setCurrentRoute(newRoute);
-    setMusicMood(
+    handleMoodChange(
       filters.customQuery
         ? detectMoodFromRoute(newRoute, filters.customQuery)
         : detectMoodFromFilter(filters.companion, filters.vibe)
@@ -125,7 +131,7 @@ export default function Home() {
   const handleSurprise = () => {
     const surprise = generateSurpriseRoute();
     setCurrentRoute(surprise);
-    setMusicMood(detectMoodFromRoute(surprise));
+    handleMoodChange(detectMoodFromRoute(surprise));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -138,7 +144,7 @@ export default function Home() {
   const handleReset = () => {
     setCurrentRoute(null);
     setSavedStops([]);
-    setMusicMood('welcome');
+    handleMoodChange('welcome');
     if (typeof window !== 'undefined' && window.history) {
       const url = new URL(window.location.href);
       url.search = '';
@@ -149,9 +155,9 @@ export default function Home() {
   // Near Me dan joy qo'shish / olib tashlash
   const handleToggleSavedStop = (location: LocationItem) => {
     if (location.companionTags.includes('couple') && location.vibeTags.includes('aesthetic_photo')) {
-      setMusicMood('romantic');
+      handleMoodChange('romantic');
     } else {
-      setMusicMood(detectMoodFromCategory(location.category));
+      handleMoodChange(detectMoodFromCategory(location.category));
     }
     setSavedStops(prev => {
       const exists = prev.some(item => item.id === location.id);
@@ -212,6 +218,7 @@ export default function Home() {
         onSurpriseClick={handleSurprise}
         onReset={handleReset}
         musicMood={musicMood}
+        moodRevision={moodRevision}
       />
 
       {/* Asosiy Kontent */}
@@ -288,10 +295,10 @@ export default function Home() {
             {/* Faol rejim kontenti */}
             {activeTab === 'ai' ? (
               <AiRouteFinder
-                onMoodChange={setMusicMood}
+                onMoodChange={handleMoodChange}
                 onRouteGenerated={(route) => {
                   setCurrentRoute(route);
-                  setMusicMood(detectMoodFromRoute(route));
+                  handleMoodChange(detectMoodFromRoute(route));
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               />
@@ -300,13 +307,13 @@ export default function Home() {
                 onGenerate={handleGenerate}
                 onSurprise={handleSurprise}
                 initialFilters={lastFilters}
-                onMoodChange={setMusicMood}
+                onMoodChange={handleMoodChange}
               />
             ) : (
               <NearMeRadar
                 onAddToCustomRoute={handleToggleSavedStop}
                 savedStops={savedStops}
-                onMoodChange={setMusicMood}
+                onMoodChange={handleMoodChange}
               />
             )}
 

@@ -14,6 +14,7 @@ export interface MoodTrackInfo {
   shortLabel: string;
   emoji: string;
   src: string;
+  sources: string[];
 }
 
 export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
@@ -22,7 +23,8 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
     label: 'Kirish ohangi',
     shortLabel: 'Kirish',
     emoji: '✨',
-    src: '/music/welcome.mp3',
+    src: '/music/welcomeorginal.mp3',
+    sources: ['/music/welcomeorginal.mp3'],
   },
   romantic: {
     id: 'romantic',
@@ -30,6 +32,7 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
     shortLabel: 'Romantik',
     emoji: '💖',
     src: '/music/romantic.mp3',
+    sources: ['/music/romantic.mp3'],
   },
   aesthetic_photo: {
     id: 'aesthetic_photo',
@@ -37,6 +40,7 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
     shortLabel: 'Solo',
     emoji: '☕',
     src: '/music/solo.mp3',
+    sources: ['/music/solo.mp3'],
   },
   night_city: {
     id: 'night_city',
@@ -44,6 +48,7 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
     shortLabel: 'Tungi',
     emoji: '🌙',
     src: '/music/tungi.mp3',
+    sources: ['/music/tungi.mp3'],
   },
   quiet_nature: {
     id: 'quiet_nature',
@@ -51,6 +56,7 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
     shortLabel: 'Oilaviy',
     emoji: '🌿',
     src: '/music/oilaviy.mp3',
+    sources: ['/music/oilaviy.mp3', '/music/welcome.mp3'],
   },
   urban_lively: {
     id: 'urban_lively',
@@ -58,6 +64,7 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
     shortLabel: 'Do‘stlar',
     emoji: '🔥',
     src: '/music/dostlar.mp3',
+    sources: ['/music/dostlar.mp3'],
   },
 };
 
