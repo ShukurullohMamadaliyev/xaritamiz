@@ -1,10 +1,109 @@
 import { RoutePlan, LocationItem } from '../types';
 
+export type TaxiProviderId = 'yandex' | 'uklon' | 'wb' | 'fasten' | 'mytaxi';
+
+export interface TaxiProviderInfo {
+  id: TaxiProviderId;
+  label: string;
+  dotColor: string;
+  getUrl: (location: LocationItem) => string;
+}
+
 /**
  * Yandex Go taksi chaqirish havolasi
  */
 export function getYandexGoUrl(location: LocationItem): string {
-  return `https://3.redirect.appmetrica.yandex.com/route?end-lat=${location.lat}&end-lon=${location.lng}&app=taxi`;
+  return `https://3.redirect.appmetrica.yandex.com/route?end-lat=${location.lat}&end-lon=${location.lng}&app=taxi&appmetrica_tracking_id=1178268795219780156`;
+}
+
+/**
+ * Uklon taksi chaqirish havolasi (Universal OneLink + koordinatalar)
+ */
+export function getUklonUrl(location: LocationItem): string {
+  const dp = `uklon://?end_lat=${location.lat}&end_lng=${location.lng}&dropoff_lat=${location.lat}&dropoff_lng=${location.lng}&lat=${location.lat}&lng=${location.lng}&destination_address=${encodeURIComponent(location.title)}`;
+  return `https://uklonapp.onelink.me/Ptvs/pwa?af_dp=${encodeURIComponent(dp)}&end_lat=${location.lat}&end_lng=${location.lng}&dropoff_lat=${location.lat}&dropoff_lng=${location.lng}&lat=${location.lat}&lng=${location.lng}&address=${encodeURIComponent(location.title)}`;
+}
+
+/**
+ * WB Taxi chaqirish havolasi
+ */
+export function getWbTaxiUrl(location: LocationItem): string {
+  const params = new URLSearchParams({
+    app: 'wb',
+    lat: String(location.lat),
+    lng: String(location.lng),
+    title: location.title,
+    address: location.address
+  });
+  return `/api/taxi?${params.toString()}`;
+}
+
+/**
+ * Fasten taksi chaqirish havolasi
+ */
+export function getFastenUrl(location: LocationItem): string {
+  const params = new URLSearchParams({
+    app: 'fasten',
+    lat: String(location.lat),
+    lng: String(location.lng),
+    title: location.title,
+    address: location.address
+  });
+  return `/api/taxi?${params.toString()}`;
+}
+
+/**
+ * MyTaxi chaqirish havolasi
+ */
+export function getMyTaxiUrl(location: LocationItem): string {
+  const params = new URLSearchParams({
+    app: 'mytaxi',
+    lat: String(location.lat),
+    lng: String(location.lng),
+    title: location.title,
+    address: location.address
+  });
+  return `/api/taxi?${params.toString()}`;
+}
+
+export const TAXI_PROVIDERS: TaxiProviderInfo[] = [
+  {
+    id: 'yandex',
+    label: 'Yandex Go',
+    dotColor: 'bg-red-500',
+    getUrl: getYandexGoUrl
+  },
+  {
+    id: 'uklon',
+    label: 'Uklon',
+    dotColor: 'bg-amber-400',
+    getUrl: getUklonUrl
+  },
+  {
+    id: 'wb',
+    label: 'WB',
+    dotColor: 'bg-fuchsia-600',
+    getUrl: getWbTaxiUrl
+  },
+  {
+    id: 'fasten',
+    label: 'Fasten',
+    dotColor: 'bg-emerald-500',
+    getUrl: getFastenUrl
+  },
+  {
+    id: 'mytaxi',
+    label: 'MyTaxi',
+    dotColor: 'bg-yellow-500',
+    getUrl: getMyTaxiUrl
+  }
+];
+
+export function handleTaxiClick(location: LocationItem) {
+  triggerHaptic('light');
+  if (typeof window !== 'undefined' && navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(location.title).catch(() => {});
+  }
 }
 
 /**

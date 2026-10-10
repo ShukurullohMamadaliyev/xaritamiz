@@ -18,7 +18,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { LocationItem, CompanionType } from '../types';
-import { getYandexGoUrl, getYandexMapsUrl, getGoogleMapsUrl, triggerHaptic } from '../lib/utils';
+import { TAXI_PROVIDERS, handleTaxiClick, getYandexMapsUrl, getGoogleMapsUrl, triggerHaptic } from '../lib/utils';
 
 interface NearPlaceCardProps {
   location: LocationItem;
@@ -129,20 +129,29 @@ export const NearPlaceCard: React.FC<NearPlaceCardProps> = ({
         {/* Amallar */}
         <div className="pt-2 border-t border-zinc-100 dark:border-slate-800 space-y-2">
           
-          <div className="grid grid-cols-3 gap-1.5">
-            {/* Yandex Go */}
-            <a
-              href={getYandexGoUrl(location)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => triggerHaptic('light')}
-              className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/70 dark:border-slate-700 text-[11px] font-semibold transition text-center active:scale-95"
-              title="Yandex Go chaqirish"
-            >
-              <Car className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Yandex Go</span>
-            </a>
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-slate-500">
+            <Car className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+            <span>Taksi chaqirish:</span>
+          </div>
 
+          <div className="flex flex-wrap gap-1.5">
+            {TAXI_PROVIDERS.map((taxi) => (
+              <a
+                key={taxi.id}
+                href={taxi.getUrl(location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleTaxiClick(location)}
+                className="flex-1 min-w-[72px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-zinc-50 hover:bg-emerald-50/70 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-800 dark:text-slate-100 border border-zinc-200/80 hover:border-emerald-300 dark:border-slate-700 text-[11px] font-semibold transition text-center active:scale-95"
+                title={`${taxi.label} chaqirish`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${taxi.dotColor}`} />
+                <span>{taxi.label}</span>
+              </a>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5">
             {/* Yandex Xarita */}
             <a
               href={getYandexMapsUrl(location)}
@@ -153,7 +162,7 @@ export const NearPlaceCard: React.FC<NearPlaceCardProps> = ({
               title="Yandex Xaritada ko'rish"
             >
               <ExternalLink className="w-3 h-3 text-emerald-600/80" />
-              <span>Yandex</span>
+              <span>Yandex Xarita</span>
             </a>
 
             {/* Google Maps */}
@@ -166,7 +175,7 @@ export const NearPlaceCard: React.FC<NearPlaceCardProps> = ({
               title="Google Maps'da ochish"
             >
               <Map className="w-3 h-3 text-emerald-600/80" />
-              <span>Google</span>
+              <span>Google Maps</span>
             </a>
           </div>
 

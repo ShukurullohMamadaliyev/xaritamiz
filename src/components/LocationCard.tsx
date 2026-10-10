@@ -12,7 +12,7 @@ import {
   Clock
 } from 'lucide-react';
 import { RouteStop } from '../types';
-import { getYandexGoUrl, getYandexMapsUrl, getGoogleMapsUrl, triggerHaptic } from '../lib/utils';
+import { TAXI_PROVIDERS, handleTaxiClick, getYandexMapsUrl, getGoogleMapsUrl, triggerHaptic } from '../lib/utils';
 
 interface LocationCardProps {
   stop: RouteStop;
@@ -111,62 +111,72 @@ export const LocationCard: React.FC<LocationCardProps> = ({
             </div>
           </div>
 
-          {/* Amallar — monoxrom */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-            
-            {/* Yandex Go */}
-            <a
-              href={getYandexGoUrl(location)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => triggerHaptic('light')}
-              className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/70 dark:border-slate-700 text-[11px] font-semibold transition text-center active:scale-95"
-              title="Yandex Go orqali taksi chaqirish"
-            >
+          {/* Taksi chaqirish tugmalari (Yandex Go, Uklon, WB, Fasten, MyTaxi) */}
+          <div className="pt-1.5 border-t border-zinc-100 dark:border-slate-800/80 space-y-2">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-slate-500">
               <Car className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Yandex Go</span>
-            </a>
+              <span>Shu manzilga taksi chaqirish:</span>
+            </div>
 
-            {/* Yandex Xarita */}
-            <a
-              href={getYandexMapsUrl(location)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => triggerHaptic('light')}
-              className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/70 dark:border-slate-700 text-[11px] font-medium transition text-center active:scale-95"
-              title="Yandex Maps'da ko'rish"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-emerald-600/80" />
-              <span>Yandex Xarita</span>
-            </a>
+            <div className="flex flex-wrap gap-1.5">
+              {TAXI_PROVIDERS.map((taxi) => (
+                <a
+                  key={taxi.id}
+                  href={taxi.getUrl(location)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => handleTaxiClick(location)}
+                  className="flex-1 min-w-[82px] flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-zinc-50 hover:bg-emerald-50/70 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-800 dark:text-slate-100 border border-zinc-200/80 hover:border-emerald-300 dark:border-slate-700 text-[11px] font-semibold transition text-center active:scale-95"
+                  title={`${taxi.label} orqali taksi chaqirish`}
+                >
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${taxi.dotColor}`} />
+                  <span>{taxi.label}</span>
+                </a>
+              ))}
+            </div>
 
-            {/* Google Maps */}
-            <a
-              href={getGoogleMapsUrl(location)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => triggerHaptic('light')}
-              className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/70 dark:border-slate-700 text-[11px] font-medium transition text-center active:scale-95"
-              title="Google Maps'da ochish"
-            >
-              <Map className="w-3.5 h-3.5 text-emerald-600/80" />
-              <span>Google Maps</span>
-            </a>
+            {/* Xarita va Almashtirish tugmalari */}
+            <div className="grid grid-cols-3 gap-2 pt-0.5">
+              {/* Yandex Xarita */}
+              <a
+                href={getYandexMapsUrl(location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => triggerHaptic('light')}
+                className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/70 dark:border-slate-700 text-[11px] font-medium transition text-center active:scale-95"
+                title="Yandex Maps'da ko'rish"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-600/80 shrink-0" />
+                <span className="truncate">Yandex Xarita</span>
+              </a>
 
-            {/* Joyni almashtirish */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('medium');
-                onSwapStop();
-              }}
-              title="Ushbu bekatni boshqasiga almashtirish"
-              className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/40 text-[11px] font-semibold transition cursor-pointer active:scale-95"
-            >
-              <Shuffle className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Almashtirish</span>
-            </button>
+              {/* Google Maps */}
+              <a
+                href={getGoogleMapsUrl(location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => triggerHaptic('light')}
+                className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/70 dark:border-slate-700 text-[11px] font-medium transition text-center active:scale-95"
+                title="Google Maps'da ochish"
+              >
+                <Map className="w-3.5 h-3.5 text-emerald-600/80 shrink-0" />
+                <span className="truncate">Google Maps</span>
+              </a>
 
+              {/* Joyni almashtirish */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  onSwapStop();
+                }}
+                title="Ushbu bekatni boshqasiga almashtirish"
+                className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/40 text-[11px] font-semibold transition cursor-pointer active:scale-95"
+              >
+                <Shuffle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Almashtirish</span>
+              </button>
+            </div>
           </div>
 
         </div>
