@@ -81,9 +81,9 @@ Faqat yuqoridagi bazadan mos joylarni tanlab, xronologik tartibda sof JSON javob
     let responseText = '';
 
     try {
-      // 1-urinish: Claude 3.5 Sonnet
+      // 1-urinish: Claude Sonnet 4.6
       const message = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         temperature: 0.5,
         system: systemPrompt,
@@ -100,11 +100,11 @@ Faqat yuqoridagi bazadan mos joylarni tanlab, xronologik tartibda sof JSON javob
         responseText = firstBlock.text.trim();
       }
     } catch (sonnetError) {
-      console.warn('Claude 3.5 Sonnet xatoligi, Haiku modeliga o‘tilmoqda:', sonnetError);
+      console.warn('Claude Sonnet xatoligi, Haiku modeliga o‘tilmoqda:', sonnetError);
       
-      // 2-urinish: Claude 3 Haiku (tezkor va tejamkor)
+      // 2-urinish: Claude Haiku 4.5 (tezkor va tejamkor)
       const messageHaiku = await anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         temperature: 0.5,
         system: systemPrompt,
