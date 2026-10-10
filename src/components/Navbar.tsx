@@ -4,19 +4,23 @@ import React from 'react';
 import Image from 'next/image';
 import { Moon, Sun, Dices } from 'lucide-react';
 import { triggerHaptic } from '../lib/utils';
+import { MoodMusicPlayer } from './MoodMusicPlayer';
+import { MusicMood } from '../lib/musicMood';
 
 interface NavbarProps {
   darkMode: boolean;
   onToggleTheme: () => void;
   onSurpriseClick: () => void;
   onReset: () => void;
+  musicMood?: MusicMood;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   darkMode,
   onToggleTheme,
   onSurpriseClick,
-  onReset
+  onReset,
+  musicMood = 'welcome'
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md border-b bg-white/85 dark:bg-[#0b0f19]/85 border-zinc-200/60 dark:border-slate-800 transition-colors">
@@ -56,7 +60,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Kayfiyat Musiqasi Pleyeri */}
+          <MoodMusicPlayer mood={musicMood} />
+
           {/* Roulette Button — emerald border pill */}
           <button
             onClick={() => {

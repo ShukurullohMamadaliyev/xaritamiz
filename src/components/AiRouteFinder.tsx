@@ -17,13 +17,16 @@ import {
 import { RoutePlan, RouteStop, LocationItem } from '../types';
 import { LOCATIONS_DATABASE } from '../data/locations';
 import { triggerHaptic } from '../lib/utils';
+import { detectMoodFromRoute, detectMoodFromText, MusicMood } from '../lib/musicMood';
 
 interface AiRouteFinderProps {
   onRouteGenerated: (route: RoutePlan) => void;
+  onMoodChange?: (mood: MusicMood) => void;
 }
 
 export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
-  onRouteGenerated
+  onRouteGenerated,
+  onMoodChange
 }) => {
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +66,7 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
     if (!promptText.trim()) return;
 
     triggerHaptic('medium');
+    onMoodChange?.(detectMoodFromText(promptText.trim()));
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -121,6 +125,7 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
       };
 
       triggerHaptic('success');
+      onMoodChange?.(detectMoodFromRoute(generatedPlan, promptText.trim()));
       onRouteGenerated(generatedPlan);
 
     } catch (err: any) {
@@ -135,6 +140,7 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
   const handleSelectChip = (text: string) => {
     triggerHaptic('light');
     setPromptText(text);
+    onMoodChange?.(detectMoodFromText(text));
   };
 
   return (
@@ -170,7 +176,7 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
             
             <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-zinc-200/60 dark:border-slate-700/50">
               <span className="text-[11px] text-zinc-400 font-medium">
-                Toshkent bo&#x2BB;ylab 50+ saralangan lokatsiya
+                Toshkent bo&#x2BB;ylab 80+ saralangan lokatsiya
               </span>
               <button
                 type="submit"

@@ -15,10 +15,12 @@ import { LOCATIONS_DATABASE } from '../data/locations';
 import { calculateDistanceMeters, formatDistance, getUserLocation, TASHKENT_CENTER } from '../lib/geoUtils';
 import { NearPlaceCard } from './NearPlaceCard';
 import { triggerHaptic } from '../lib/utils';
+import { MusicMood } from '../lib/musicMood';
 
 interface NearMeRadarProps {
   onAddToCustomRoute?: (location: LocationItem) => void;
   savedStops?: LocationItem[];
+  onMoodChange?: (mood: MusicMood) => void;
 }
 
 type CategoryFilter = 'all' | 'cafe' | 'restaurant' | 'entertainment' | 'parks';
@@ -28,7 +30,8 @@ const sectionCls = 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2x
 
 export const NearMeRadar: React.FC<NearMeRadarProps> = ({
   onAddToCustomRoute,
-  savedStops = []
+  savedStops = [],
+  onMoodChange
 }) => {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>(TASHKENT_CENTER);
   const [locationName, setLocationName] = useState<string>('Toshkent Markazi (Amir Temur xiyoboni)');
@@ -265,7 +268,13 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
                 <button
                   key={chip.id}
                   type="button"
-                  onClick={() => { triggerHaptic('light'); setSelectedCategory(chip.id); }}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setSelectedCategory(chip.id);
+                    if (chip.id === 'cafe') onMoodChange?.('aesthetic_photo');
+                    else if (chip.id === 'parks') onMoodChange?.('quiet_nature');
+                    else if (chip.id === 'entertainment' || chip.id === 'restaurant') onMoodChange?.('urban_lively');
+                  }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer active:scale-95 ${isSelected ? chipActive : chipInactive}`}
                 >
                   {chip.label}
@@ -285,7 +294,14 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
                 <button
                   key={chip.id}
                   type="button"
-                  onClick={() => { triggerHaptic('light'); setSelectedCompanion(chip.id); }}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setSelectedCompanion(chip.id);
+                    if (chip.id === 'couple') onMoodChange?.('romantic');
+                    else if (chip.id === 'friends') onMoodChange?.('urban_lively');
+                    else if (chip.id === 'family') onMoodChange?.('quiet_nature');
+                    else if (chip.id === 'solo') onMoodChange?.('aesthetic_photo');
+                  }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer active:scale-95 ${isSelected ? chipActive : chipInactive}`}
                 >
                   {chip.label}

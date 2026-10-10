@@ -18,12 +18,14 @@ import {
 } from '../types';
 import { generateRoute, generateSurpriseRoute, swapStopInRoute } from '../lib/routeGenerator';
 import { triggerHaptic } from '../lib/utils';
+import { detectMoodFromCategory, detectMoodFromFilter, detectMoodFromRoute, MusicMood } from '../lib/musicMood';
 import { Sparkles, Compass, MapPin, ArrowRight, Trash2, Bot, SlidersHorizontal } from 'lucide-react';
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<'ai' | 'generator' | 'radar'>('ai');
   const [currentRoute, setCurrentRoute] = useState<RoutePlan | null>(null);
+  const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
   
   // Near Me orqali foydalanuvchi qo'shgan joylar
   const [savedStops, setSavedStops] = useState<LocationItem[]>([]);
@@ -79,6 +81,7 @@ export default function Home() {
         setLastFilters(filters);
         const autoRoute = generateRoute(filters);
         setCurrentRoute(autoRoute);
+        setMusicMood(detectMoodFromRoute(autoRoute));
       }
     }
   }, []);
@@ -101,6 +104,11 @@ export default function Home() {
     setLastFilters(filters);
     const newRoute = generateRoute(filters);
     setCurrentRoute(newRoute);
+    setMusicMood(
+      filters.customQuery
+        ? detectMoodFromRoute(newRoute, filters.customQuery)
+        : detectMoodFromFilter(filters.companion, filters.vibe)
+    );
 
     if (typeof window !== 'undefined' && window.history) {
       const url = new URL(window.location.href);
@@ -117,6 +125,7 @@ export default function Home() {
   const handleSurprise = () => {
     const surprise = generateSurpriseRoute();
     setCurrentRoute(surprise);
+    setMusicMood(detectMoodFromRoute(surprise));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -129,6 +138,7 @@ export default function Home() {
   const handleReset = () => {
     setCurrentRoute(null);
     setSavedStops([]);
+    setMusicMood('welcome');
     if (typeof window !== 'undefined' && window.history) {
       const url = new URL(window.location.href);
       url.search = '';
@@ -138,6 +148,11 @@ export default function Home() {
 
   // Near Me dan joy qo'shish / olib tashlash
   const handleToggleSavedStop = (location: LocationItem) => {
+    if (location.companionTags.includes('couple') && location.vibeTags.includes('aesthetic_photo')) {
+      setMusicMood('romantic');
+    } else {
+      setMusicMood(detectMoodFromCategory(location.category));
+    }
     setSavedStops(prev => {
       const exists = prev.some(item => item.id === location.id);
       if (exists) {
@@ -196,6 +211,7 @@ export default function Home() {
         onToggleTheme={toggleTheme}
         onSurpriseClick={handleSurprise}
         onReset={handleReset}
+        musicMood={musicMood}
       />
 
       {/* Asosiy Kontent */}
@@ -272,8 +288,10 @@ export default function Home() {
             {/* Faol rejim kontenti */}
             {activeTab === 'ai' ? (
               <AiRouteFinder
+                onMoodChange={setMusicMood}
                 onRouteGenerated={(route) => {
                   setCurrentRoute(route);
+                  setMusicMood(detectMoodFromRoute(route));
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               />
@@ -282,11 +300,13 @@ export default function Home() {
                 onGenerate={handleGenerate}
                 onSurprise={handleSurprise}
                 initialFilters={lastFilters}
+                onMoodChange={setMusicMood}
               />
             ) : (
               <NearMeRadar
                 onAddToCustomRoute={handleToggleSavedStop}
                 savedStops={savedStops}
+                onMoodChange={setMusicMood}
               />
             )}
 

@@ -1,0 +1,175 @@
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { Volume2, VolumeX, Music } from 'lucide-react';
+import { MOOD_TRACKS, MusicMood } from '../lib/musicMood';
+import { triggerHaptic } from '../lib/utils';
+
+interface MoodMusicPlayerProps {
+  mood: MusicMood;
+  onChangeMood?: (mood: MusicMood) => void;
+}
+
+export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
+  mood,
+}) => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showMoodToast, setShowMoodToast] = useState(false);
+  const prevMoodRef = useRef<MusicMood>(mood);
+  const userMutedRef = useRef(false);
+
+  const track = MOOD_TRACKS[mood] || MOOD_TRACKS.welcome;
+
+  // Boshlang'ich avtomatik ijro + birinchi teginishda ishga tushirish (autoplay fallback)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = 0.38;
+
+    const tryPlay = () => {
+      if (userMutedRef.current || !audioRef.current) return;
+      audioRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch(() => {
+          // Brauzer birinchi bosishni kutmoqda
+        });
+    };
+
+    tryPlay();
+
+    const handleFirstInteraction = () => {
+      if (!userMutedRef.current && audioRef.current && audioRef.current.paused) {
+        audioRef.current
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch(() => {});
+      }
+    };
+
+    window.addEventListener('pointerdown', handleFirstInteraction, { passive: true });
+    window.addEventListener('touchstart', handleFirstInteraction, { passive: true });
+    window.addEventListener('click', handleFirstInteraction, { passive: true });
+    window.addEventListener('keydown', handleFirstInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, []);
+
+  // Kayfiyat (mood) o'zgarganda trekni yangilash va bildirishnoma ko'rsatish
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const nextTrack = MOOD_TRACKS[mood] || MOOD_TRACKS.welcome;
+    const isDifferentMood = prevMoodRef.current !== mood;
+    prevMoodRef.current = mood;
+
+    if (isDifferentMood) {
+      setShowMoodToast(true);
+      const timer = setTimeout(() => setShowMoodToast(false), 3200);
+
+      audio.src = nextTrack.src;
+      audio.load();
+      audio.volume = 0.38;
+
+      if (!userMutedRef.current) {
+        audio
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => {});
+      }
+
+      return () => clearTimeout(timer);
+    }
+  }, [mood]);
+
+  const toggleMute = () => {
+    triggerHaptic('light');
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isMuted || audio.paused) {
+      userMutedRef.current = false;
+      setIsMuted(false);
+      audio.muted = false;
+      audio.volume = 0.38;
+      audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
+    } else {
+      userMutedRef.current = true;
+      setIsMuted(true);
+      audio.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  return (
+    <>
+      <audio
+        ref={audioRef}
+        src={MOOD_TRACKS.welcome.src}
+        loop
+        preload="auto"
+        playsInline
+      />
+
+      {/* Navbar ichidagi Musiqa Tugmasi */}
+      <button
+        type="button"
+        onClick={toggleMute}
+        title={isMuted ? 'Musiqani yoqish' : `${track.label} (O‘chirish uchun bosing)`}
+        className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-full border transition-all active:scale-95 cursor-pointer ${
+          !isMuted && isPlaying
+            ? 'bg-emerald-50/90 hover:bg-emerald-100/80 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-700/70 shadow-[0_2px_10px_rgba(16,185,129,0.15)]'
+            : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-slate-800/80 text-zinc-500 dark:text-slate-400 border-zinc-200/70 dark:border-slate-700/60'
+        }`}
+      >
+        {!isMuted && isPlaying ? (
+          <>
+            <span className="text-xs leading-none">{track.emoji}</span>
+            <span className="hidden md:inline max-w-[110px] truncate">
+              {track.shortLabel}
+            </span>
+            {/* Jonli ekvalayzer ustunlari */}
+            <span className="flex items-end gap-[2px] h-3 px-0.5">
+              <span className="w-[2.5px] bg-emerald-600 dark:bg-emerald-400 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-2.5" />
+              <span className="w-[2.5px] bg-emerald-600 dark:bg-emerald-400 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-3" />
+              <span className="w-[2.5px] bg-emerald-600 dark:bg-emerald-400 rounded-full animate-[pulse_0.9s_ease-in-out_infinite] h-1.5" />
+            </span>
+          </>
+        ) : (
+          <>
+            <VolumeX className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden md:inline text-[11px]">Musiqa</span>
+          </>
+        )}
+      </button>
+
+      {/* Kayfiyat musiqasi almashganda suzib chiquvchi chiroyli bildirishnoma */}
+      {showMoodToast && !isMuted && (
+        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-fade-in">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-zinc-900/90 dark:bg-emerald-950/95 text-white text-xs font-medium shadow-lg border border-white/10 backdrop-blur-md">
+            <Music className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
+            <span>
+              Kayfiyat musiqasi: <b>{track.emoji} {track.label}</b>
+            </span>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};

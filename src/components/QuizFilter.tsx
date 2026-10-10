@@ -32,17 +32,20 @@ import {
 } from '../types';
 import { parseCustomQuery } from '../lib/routeGenerator';
 import { triggerHaptic } from '../lib/utils';
+import { detectMoodFromFilter, MusicMood } from '../lib/musicMood';
 
 interface QuizFilterProps {
   onGenerate: (filters: FilterState) => void;
   onSurprise: () => void;
   initialFilters?: FilterState;
+  onMoodChange?: (mood: MusicMood) => void;
 }
 
 export const QuizFilter: React.FC<QuizFilterProps> = ({
   onGenerate,
   onSurprise,
-  initialFilters
+  initialFilters,
+  onMoodChange
 }) => {
   const [companion, setCompanion] = useState<CompanionType>(initialFilters?.companion || 'couple');
   const [vibe, setVibe] = useState<VibeType>(initialFilters?.vibe || 'aesthetic_photo');
@@ -254,7 +257,11 @@ export const QuizFilter: React.FC<QuizFilterProps> = ({
                 <button
                   type="button"
                   key={opt.id}
-                  onClick={() => { triggerHaptic('light'); setCompanion(opt.id); }}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setCompanion(opt.id);
+                    onMoodChange?.(detectMoodFromFilter(opt.id, vibe, 'companion'));
+                  }}
                   className={`flex flex-col items-center justify-center p-3.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer ${isSelected ? activeCard : inactiveCard}`}
                 >
                   <div className={`mb-2 ${iconWrapCls(isSelected)}`}>
@@ -282,7 +289,11 @@ export const QuizFilter: React.FC<QuizFilterProps> = ({
                 <button
                   type="button"
                   key={opt.id}
-                  onClick={() => { triggerHaptic('light'); setVibe(opt.id); }}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setVibe(opt.id);
+                    onMoodChange?.(detectMoodFromFilter(companion, opt.id, 'vibe'));
+                  }}
                   className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden ${isSelected ? activeCard : inactiveCard}`}
                 >
                   <div className={iconWrapCls(isSelected)}>
