@@ -19,8 +19,8 @@ export interface MoodTrackInfo {
 export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
   welcome: {
     id: 'welcome',
-    label: 'Yoqimli kirish • Chill',
-    shortLabel: 'Chill Lounge',
+    label: 'Kirish ohangi',
+    shortLabel: 'Kirish',
     emoji: '✨',
     src: '/music/welcome.mp3',
   },
@@ -33,31 +33,31 @@ export const MOOD_TRACKS: Record<MusicMood, MoodTrackInfo> = {
   },
   aesthetic_photo: {
     id: 'aesthetic_photo',
-    label: 'Estetik & Qahva',
-    shortLabel: 'Kafe Jazz',
+    label: 'Solo & Estetik qahva',
+    shortLabel: 'Solo',
     emoji: '☕',
-    src: '/music/aesthetic_photo.mp3',
+    src: '/music/solo.mp3',
   },
   night_city: {
     id: 'night_city',
     label: 'Tungi Toshkent',
-    shortLabel: 'Tungi shahar',
+    shortLabel: 'Tungi',
     emoji: '🌙',
-    src: '/music/night_city.mp3',
+    src: '/music/tungi.mp3',
   },
   quiet_nature: {
     id: 'quiet_nature',
-    label: 'Sokin tabiat & Bog‘',
-    shortLabel: 'Sokin tabiat',
+    label: 'Oilaviy & Sokin tabiat',
+    shortLabel: 'Oilaviy',
     emoji: '🌿',
-    src: '/music/quiet_nature.mp3',
+    src: '/music/oilaviy.mp3',
   },
   urban_lively: {
     id: 'urban_lively',
-    label: 'Do‘stlar & Drayv',
-    shortLabel: 'Quvnoq ritm',
+    label: 'Do‘stlar bilan',
+    shortLabel: 'Do‘stlar',
     emoji: '🔥',
-    src: '/music/urban_lively.mp3',
+    src: '/music/dostlar.mp3',
   },
 };
 
@@ -89,6 +89,9 @@ export function detectMoodFromText(text: string): MusicMood {
   }
 
   if (
+    q.includes('oila') ||
+    q.includes('farzand') ||
+    q.includes('bolalar') ||
     q.includes('yomg‘ir') ||
     q.includes("yomg'ir") ||
     q.includes('yomgir') ||
@@ -103,13 +106,16 @@ export function detectMoodFromText(text: string): MusicMood {
   }
 
   if (
+    q.includes('solo') ||
+    q.includes('yolg‘iz') ||
+    q.includes("yolg'iz") ||
+    q.includes('bir o‘zim') ||
+    q.includes("bir o'zim") ||
     q.includes('kitob') ||
     q.includes('qahva') ||
     q.includes('kofe') ||
     q.includes('kruassan') ||
     q.includes('estetik') ||
-    q.includes('yolg‘iz') ||
-    q.includes("yolg'iz") ||
     q.includes('shirinlik')
   ) {
     return 'aesthetic_photo';
@@ -149,13 +155,22 @@ export function detectMoodFromFilter(
   if (vibe === 'quiet_nature') return 'quiet_nature';
   if (vibe === 'adventure_active') return 'urban_lively';
   if (vibe === 'urban_lively') {
-    return companion === 'couple' ? 'romantic' : 'urban_lively';
+    if (companion === 'couple') return 'romantic';
+    if (companion === 'family') return 'quiet_nature';
+    if (companion === 'solo') return 'aesthetic_photo';
+    return 'urban_lively';
   }
   if (vibe === 'aesthetic_photo') {
-    return companion === 'couple' ? 'romantic' : 'aesthetic_photo';
+    if (companion === 'couple') return 'romantic';
+    if (companion === 'family') return 'quiet_nature';
+    if (companion === 'friends') return 'urban_lively';
+    return 'aesthetic_photo';
   }
 
   if (companion === 'couple') return 'romantic';
+  if (companion === 'family') return 'quiet_nature';
+  if (companion === 'friends') return 'urban_lively';
+  if (companion === 'solo') return 'aesthetic_photo';
   return 'welcome';
 }
 
@@ -180,35 +195,34 @@ export function detectMoodFromCategory(category: LocationCategory | 'all'): Musi
 
 export function detectMoodFromRoute(route: RoutePlan, promptHint?: string): MusicMood {
   const combinedText = `${route.title || ''} ${route.subtitle || ''} ${route.aiComment || ''} ${promptHint || ''}`;
-  const textMood = detectMoodFromText(combinedText);
 
-  // Agar matnda aniq kalit so'z bo'lsa (masalan: romantik, tungi, yomg'ir, do'stlar, kitob)
-  if (
-    /romantik|qizim|sevgi|juftlik|uchrashuv/i.test(combinedText)
-  ) {
+  if (/romantik|qizim|sevgi|juftlik|uchrashuv/i.test(combinedText)) {
     return 'romantic';
   }
   if (/tungi|mashinada|rooftop|panorama/i.test(combinedText)) {
     return 'night_city';
   }
-  if (/yomg'ir|yomg‘ir|tabiat|bog'|bog‘|sokin oqshom/i.test(combinedText)) {
+  if (/oila|bolalar|yomg'ir|yomg‘ir|tabiat|bog'|bog‘|sokin oqshom/i.test(combinedText)) {
     return 'quiet_nature';
   }
-  if (/kitob|yolg'iz|yolg‘iz|kruassan/i.test(combinedText)) {
+  if (/kitob|yolg'iz|yolg‘iz|bir o'zim|bir o‘zim|kruassan/i.test(combinedText)) {
     return 'aesthetic_photo';
   }
   if (/do'st|do‘st|karting|bouling|choyxona/i.test(combinedText)) {
     return 'urban_lively';
   }
 
-  if (route.companion === 'couple') {
-    return 'romantic';
+  if (route.companion === 'couple') return 'romantic';
+  if (route.companion === 'family') return 'quiet_nature';
+  if (route.companion === 'solo') return 'aesthetic_photo';
+  if (route.companion === 'friends') {
+    if (route.vibe === 'night_city') return 'night_city';
+    return 'urban_lively';
   }
 
   if (route.vibe === 'night_city') return 'night_city';
   if (route.vibe === 'quiet_nature') return 'quiet_nature';
   if (route.vibe === 'adventure_active' || route.vibe === 'urban_lively') return 'urban_lively';
-  if (route.vibe === 'aesthetic_photo') return textMood;
 
   return 'aesthetic_photo';
 }

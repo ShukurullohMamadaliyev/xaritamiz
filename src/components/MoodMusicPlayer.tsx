@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Volume2, VolumeX, Music } from 'lucide-react';
+import { VolumeX, Music } from 'lucide-react';
 import { MOOD_TRACKS, MusicMood } from '../lib/musicMood';
 import { triggerHaptic } from '../lib/utils';
 
@@ -9,6 +9,8 @@ interface MoodMusicPlayerProps {
   mood: MusicMood;
   onChangeMood?: (mood: MusicMood) => void;
 }
+
+const SOFT_BACKGROUND_VOLUME = 0.22;
 
 export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
   mood,
@@ -27,10 +29,11 @@ export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.volume = 0.38;
+    audio.volume = SOFT_BACKGROUND_VOLUME;
 
     const tryPlay = () => {
       if (userMutedRef.current || !audioRef.current) return;
+      audioRef.current.volume = SOFT_BACKGROUND_VOLUME;
       audioRef.current
         .play()
         .then(() => {
@@ -45,6 +48,7 @@ export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
 
     const handleFirstInteraction = () => {
       if (!userMutedRef.current && audioRef.current && audioRef.current.paused) {
+        audioRef.current.volume = SOFT_BACKGROUND_VOLUME;
         audioRef.current
           .play()
           .then(() => {
@@ -78,11 +82,10 @@ export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
 
     if (isDifferentMood) {
       setShowMoodToast(true);
-      const timer = setTimeout(() => setShowMoodToast(false), 3200);
+      const timer = setTimeout(() => setShowMoodToast(false), 3000);
 
       audio.src = nextTrack.src;
-      audio.load();
-      audio.volume = 0.38;
+      audio.volume = SOFT_BACKGROUND_VOLUME;
 
       if (!userMutedRef.current) {
         audio
@@ -104,7 +107,7 @@ export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
       userMutedRef.current = false;
       setIsMuted(false);
       audio.muted = false;
-      audio.volume = 0.38;
+      audio.volume = SOFT_BACKGROUND_VOLUME;
       audio
         .play()
         .then(() => setIsPlaying(true))
@@ -123,7 +126,7 @@ export const MoodMusicPlayer: React.FC<MoodMusicPlayerProps> = ({
         ref={audioRef}
         src={MOOD_TRACKS.welcome.src}
         loop
-        preload="auto"
+        preload="metadata"
         playsInline
       />
 
