@@ -29,6 +29,8 @@ interface AiRouteResponse {
   stops: AiStopResponse[];
 }
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -74,7 +76,7 @@ Vazifang:
     const userMessageContent = `Foydalanuvchi istagi: "${userPrompt}"
 
 Bizning Toshkent shahrining mavjud lokatsiyalar bazasi:
-${JSON.stringify(PLACES_SUMMARY, null, 2)}
+${JSON.stringify(PLACES_SUMMARY)}
 
 Faqat yuqoridagi bazadan mos joylarni tanlab, xronologik tartibda sof JSON javob qaytar:`;
 
