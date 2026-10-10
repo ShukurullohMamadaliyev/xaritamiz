@@ -48,6 +48,7 @@ export interface LocationItem {
   distanceText?: string;
   latitude?: number;
   longitude?: number;
+  longTripData?: import('../data/longTrips').LongTripItem;
 }
 
 export interface RouteStop {

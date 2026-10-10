@@ -1,4 +1,5 @@
 import { LOCATIONS_DATABASE } from '../data/locations';
+import { LONG_TRIPS_DATABASE, longTripToLocationItem } from '../data/longTrips';
 import { 
   FilterState, 
   RoutePlan, 
@@ -351,6 +352,33 @@ export function swapStopInRoute(currentRoute: RoutePlan, stopIndex: number): Rou
 
   // Hozirgi tanlangan barcha ID lar
   const existingIds = new Set(currentRoute.stops.map(s => s.location.id));
+
+  // Agar uzoq safar maskani bo'lsa, 40 ta viloyat maskani ichidan almashtirish
+  if (currentStop.location.longTripData) {
+    const currentNature = currentStop.location.longTripData.natureType;
+    const sameNature = LONG_TRIPS_DATABASE.filter(
+      t => !existingIds.has(t.id) && t.natureType === currentNature
+    );
+    const anyTrip = LONG_TRIPS_DATABASE.filter(t => !existingIds.has(t.id));
+    const tripPool = sameNature.length > 0 ? sameNature : anyTrip;
+    if (tripPool.length === 0) return currentRoute;
+
+    const chosenTrip = tripPool[Math.floor(Math.random() * tripPool.length)];
+    const converted = longTripToLocationItem(chosenTrip);
+    const updatedStops = [...currentRoute.stops];
+    updatedStops[stopIndex] = {
+      ...currentStop,
+      timeSlot: `${stopIndex + 1}-variant • ${chosenTrip.travelTimeText}`,
+      location: converted,
+      activityNote: chosenTrip.creativeTip
+    };
+    const newTotalCost = updatedStops.reduce((acc, curr) => acc + curr.location.estimatedPrice, 0);
+    return {
+      ...currentRoute,
+      stops: updatedStops,
+      numericTotalCost: newTotalCost
+    };
+  }
 
   // Mos keladigan boshqa lokatsiyani qidirish
   const candidates = LOCATIONS_DATABASE.filter(loc => 

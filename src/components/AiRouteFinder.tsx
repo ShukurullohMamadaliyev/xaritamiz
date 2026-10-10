@@ -1,21 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  Send, 
-  Bot, 
-  Lightbulb, 
-  Compass, 
-  Loader2, 
-  Heart, 
-  Users, 
-  BookOpen, 
+import {
+  Sparkles,
+  Send,
+  Lightbulb,
+  Loader2,
+  Heart,
+  Users,
+  BookOpen,
   Moon,
-  CloudRain
+  CloudRain,
+  Mountain,
+  Compass
 } from 'lucide-react';
-import { RoutePlan, RouteStop, LocationItem } from '../types';
+import { RoutePlan, RouteStop } from '../types';
 import { LOCATIONS_DATABASE } from '../data/locations';
+import { LONG_TRIPS_DATABASE, longTripToLocationItem } from '../data/longTrips';
 import { triggerHaptic } from '../lib/utils';
 import { detectMoodFromRoute, detectMoodFromText, MusicMood } from '../lib/musicMood';
 
@@ -32,31 +33,47 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Barcha chip ikonkalari — monoxrom zumrad-kulrang
   const quickIdeas: { label: string; prompt: string; icon: React.ReactNode }[] = [
     {
+      label: '🏔️ Uzoq safar: Sharshara & Tog‘lar',
+      prompt:
+        'Uzoq safarlarga 12 viloyat bo‘ylab sharsharali, soyli va tog‘li eng zo‘r manzarali joylardan 4 ta variant chiqarib ber',
+      icon: <Mountain className="w-3.5 h-3.5 text-emerald-700/70 dark:text-emerald-500" />
+    },
+    {
+      label: '⛺ Uzoq safar: Yolg‘iz tabiat & Ko‘llar',
+      prompt:
+        'Uzoq safarga shovqindan uzoq yolg‘iz tabiat qo‘ynidagi ko‘lli, yaylovli va kanyonli 4 ta maskan tavsiya qil',
+      icon: <Compass className="w-3.5 h-3.5 text-emerald-700/70 dark:text-emerald-500" />
+    },
+    {
       label: 'Romantik oqshom',
-      prompt: 'Qizim bilan romantik sokin oqshom, chiroyli qahvaxona va quyosh botishida fotosessiya',
+      prompt:
+        'Qizim bilan romantik sokin oqshom, chiroyli qahvaxona va quyosh botishida fotosessiya',
       icon: <Heart className="w-3.5 h-3.5 text-emerald-700/70 dark:text-emerald-500" />
     },
     {
       label: 'Mashinada tungi shahar',
-      prompt: 'Mashinada oqshom shahar aylanib, qahva ichib, panoramali tunda sokin suhbatlashadigan joy',
+      prompt:
+        'Mashinada oqshom shahar aylanib, qahva ichib, panoramali tunda sokin suhbatlashadigan joy',
       icon: <Moon className="w-3.5 h-3.5 text-emerald-700/70 dark:text-emerald-500" />
     },
     {
-      label: "Do\u02BBstlar bilan choyxona & o\u02BByin",
-      prompt: "Do\u02BBstlar bilan to\u02BByib go\u02BBsht yeb, keyin karting yoki bouling o\u02BBynash, energiya to\u02BBla oqshom",
+      label: 'Doʻstlar bilan choyxona & oʻyin',
+      prompt:
+        'Doʻstlar bilan toʻyib goʻsht yeb, keyin karting yoki bouling oʻynash, energiya toʻla oqshom',
       icon: <Users className="w-3.5 h-3.5 text-emerald-700/70 dark:text-emerald-500" />
     },
     {
-      label: "Yolg\u02BBiz qahva va kitob",
-      prompt: "Bir o\u02BBzim tinchgina kitob o\u02BBqib, mazali shirinlik va xushbo\u02BBiy kapuchino ichib dam oladigan maskan",
+      label: 'Yolgʻiz qahva va kitob',
+      prompt:
+        'Bir oʻzim tinchgina kitob oʻqib, mazali shirinlik va xushboʻiy kapuchino ichib dam oladigan maskan',
       icon: <BookOpen className="w-3.5 h-3.5 text-emerald-700/70 dark:text-emerald-500" />
     },
     {
-      label: "Yomg\u02BBirli sokin oqshom",
-      prompt: "Hozir havo salqin va yomg\u02BBirli, shinam deraza oldida iliq choy ichib, sokin suhbatlashadigan joy",
+      label: 'Yomgʻirli sokin oqshom',
+      prompt:
+        'Hozir havo salqin va yomgʻirli, shinam deraza oldida iliq choy ichib, sokin suhbatlashadigan joy',
       icon: <CloudRain className="w-3.5 h-3.5 text-emerald-700/70 dark:text-emerald-500" />
     }
   ];
@@ -84,53 +101,90 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
       }
 
       const mergedStops: RouteStop[] = [];
+      let hasLongTrip = Boolean(data.isLongTripRoute);
 
-      data.stops.forEach((aiStop: { placeId: string; recommendedTime: string; customTip: string }, index: number) => {
-        const foundLocation = LOCATIONS_DATABASE.find(l => l.id === aiStop.placeId);
-        if (foundLocation) {
-          mergedStops.push({
-            stopOrder: index + 1,
-            timeSlot: aiStop.recommendedTime || `${18 + index}:30`,
-            location: {
-              ...foundLocation,
-              tipText: aiStop.customTip || foundLocation.tipText
-            },
-            activityNote: aiStop.customTip || foundLocation.tipText,
-            customVoteScore: { yes: 1, no: 0 }
-          });
+      data.stops.forEach(
+        (
+          aiStop: { placeId: string; recommendedTime: string; customTip: string },
+          index: number
+        ) => {
+          const foundLocation = LOCATIONS_DATABASE.find((l) => l.id === aiStop.placeId);
+          if (foundLocation) {
+            mergedStops.push({
+              stopOrder: index + 1,
+              timeSlot: aiStop.recommendedTime || `${18 + index}:30`,
+              location: {
+                ...foundLocation,
+                tipText: aiStop.customTip || foundLocation.tipText
+              },
+              activityNote: aiStop.customTip || foundLocation.tipText,
+              customVoteScore: { yes: 1, no: 0 }
+            });
+            return;
+          }
+
+          const foundLongTrip = LONG_TRIPS_DATABASE.find((t) => t.id === aiStop.placeId);
+          if (foundLongTrip) {
+            hasLongTrip = true;
+            const converted = longTripToLocationItem(foundLongTrip);
+            mergedStops.push({
+              stopOrder: index + 1,
+              timeSlot: aiStop.recommendedTime || foundLongTrip.travelTimeText,
+              location: {
+                ...converted,
+                tipText: aiStop.customTip || foundLongTrip.creativeTip
+              },
+              activityNote: aiStop.customTip || foundLongTrip.creativeTip,
+              customVoteScore: { yes: 1, no: 0 }
+            });
+          }
         }
-      });
+      );
 
       if (mergedStops.length === 0) {
-        throw new Error("Mos lokatsiyalar topilmadi, iltimos qayta urinib ko\u02BBring");
+        throw new Error('Mos lokatsiyalar topilmadi, iltimos qayta urinib koʻring');
       }
 
-      const totalCostNumber = mergedStops.reduce((acc, curr) => acc + curr.location.estimatedPrice, 0);
+      const totalCostNumber = mergedStops.reduce(
+        (acc, curr) => acc + curr.location.estimatedPrice,
+        0
+      );
 
       const generatedPlan: RoutePlan = {
         id: `route-${Math.random().toString(36).substring(2, 9)}`,
-        title: data.routeTitle || 'Toshkent Bo‘yicha Maxsus Marshrut',
-        subtitle: `Xaritamiz • Toshkent shahri • ${mergedStops.length} ta saralangan bekat`,
-        vibe: 'aesthetic_photo',
+        title:
+          data.routeTitle ||
+          (hasLongTrip
+            ? '12 Viloyat Bo‘yicha Uzoq Safar Variantlari'
+            : 'Toshkent Bo‘yicha Maxsus Marshrut'),
+        subtitle: hasLongTrip
+          ? `Xaritamiz • 12 Viloyat Uzoq Safarlar • ${mergedStops.length} ta saralangan variant`
+          : `Xaritamiz • Toshkent shahri • ${mergedStops.length} ta saralangan bekat`,
+        vibe: hasLongTrip ? 'quiet_nature' : 'aesthetic_photo',
         companion: 'friends',
         budgetTier: 'medium',
-        duration: mergedStops.length <= 2 ? 'evening_short' : 'half_day',
-        totalEstimatedCost: data.estimatedTotalCost || `${(Math.round(totalCostNumber / 10000) * 10000).toLocaleString('uz-UZ')} so‘m`,
+        duration: hasLongTrip ? 'full_day' : mergedStops.length <= 2 ? 'evening_short' : 'half_day',
+        totalEstimatedCost:
+          data.estimatedTotalCost ||
+          `${(Math.round(totalCostNumber / 10000) * 10000).toLocaleString('uz-UZ')} so‘m`,
         numericTotalCost: totalCostNumber,
-        totalDurationHours: `${mergedStops.length * 1.5} soat`,
+        totalDurationHours: hasLongTrip
+          ? '1–2 kunlik safar'
+          : `${mergedStops.length * 1.5} soat`,
         stops: mergedStops,
-        highlightTag: 'Maxsus Saralangan ✨',
+        highlightTag: hasLongTrip ? '12 Viloyat Uzoq Safar 🏔️' : 'Maxsus Saralangan ✨',
         aiComment: data.aiComment,
-        createdAt: '2026-10-09T18:00:00Z'
+        createdAt: '2026-10-10T18:00:00Z'
       };
 
       triggerHaptic('success');
       onMoodChange?.(detectMoodFromRoute(generatedPlan, promptText.trim()));
       onRouteGenerated(generatedPlan);
-
     } catch (err: any) {
       console.error('Marshrut olishda xatolik:', err);
-      setErrorMessage(err.message || "Server bilan bog‘lanishda xatolik yuz berdi. Qayta urinib ko‘ring.");
+      setErrorMessage(
+        err.message || 'Server bilan bog‘lanishda xatolik yuz berdi. Qayta urinib ko‘ring.'
+      );
       triggerHaptic('warning');
     } finally {
       setIsLoading(false);
@@ -145,38 +199,37 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-5">
-      
       {/* Sarlavha & Intro */}
       <div className="text-center pt-2 pb-1 space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100/70 text-emerald-800 border border-emerald-200/60 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/40">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Sizning Shaxsiy Shahar Yo‘lboshchingiz</span>
+          <span>Toshkent & 12 Viloyat Yo‘lboshchingiz</span>
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white leading-tight">
           Xayolingizdagi hordiqni yozing
         </h1>
         <p className="text-sm text-zinc-500 dark:text-slate-400 max-w-md mx-auto">
-          Kayfiyatingiz, byudjetingiz yoki orzungizdagi muhitni tasvirlang — Xaritamiz siz uchun eng mos, mukammal xronologik reja tuzib beradi.
+          Toshkent bo‘ylab oqshom rejasini yoki 12 viloyat bo‘ylab uzoq safar (tog‘, sharshara,
+          soy, ko‘l) istagingizni yozing — Xaritamiz eng mos variantlarni chiqarib beradi.
         </p>
       </div>
 
-      {/* Input va So'rov Formasi — Notion/ChatGPT uslubidagi minimal oq karta */}
+      {/* Input va So'rov Formasi */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
-        
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="relative rounded-xl bg-zinc-50/70 dark:bg-slate-800/50 border border-zinc-200/80 dark:border-slate-700 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all p-3">
             <textarea
               rows={3}
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              placeholder="Qanday hordiq chiqarmoqchisiz? Masalan: Hozir yomg&#x27;ir yog&#x27;yapti, mashinada aylanib, qizim bilan qahva ichib, sokin suhbatlashadigan joy kerak, byudjet 150 ming..."
+              placeholder="Masalan: Uzoq safarlarga sharsharali, soyli va tog‘li joylardan 4 ta variant chiqarib ber... yoki: Qizim bilan qahva ichib sokin suhbatlashadigan joy kerak..."
               className="w-full bg-transparent text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none resize-none transition leading-relaxed"
               disabled={isLoading}
             />
-            
+
             <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-zinc-200/60 dark:border-slate-700/50">
               <span className="text-[11px] text-zinc-400 font-medium">
-                Toshkent bo&#x2BB;ylab 80+ saralangan lokatsiya
+                80 ta Toshkent + 40 ta Uzoq safar (12 viloyat)
               </span>
               <button
                 type="submit"
@@ -206,11 +259,11 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
           )}
         </form>
 
-        {/* Tezkor g'oyalar (Chips) — monoxrom zumrad */}
+        {/* Tezkor g'oyalar (Chips) */}
         <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-slate-800">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
             <Lightbulb className="w-3.5 h-3.5 text-emerald-600/70" />
-            <span>Tezkor g&#x2BB;oyalar (bosib tanlang):</span>
+            <span>Tezkor gʻoyalar (bosib tanlang):</span>
           </div>
 
           <div className="flex flex-wrap gap-1.5">
@@ -228,7 +281,6 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
             ))}
           </div>
         </div>
-
       </div>
 
       {/* Loading skeleton */}
@@ -249,7 +301,6 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
           </div>
         </div>
       )}
-
     </div>
   );
 };
