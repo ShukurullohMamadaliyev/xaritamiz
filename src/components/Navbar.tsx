@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           {/* Logotip: toza shaffof PNG, ramkasiz */}
           <img
-            src="/logo.png"
+            src="/logo.png?v=2"
             alt="Xaritamiz"
             width={44}
             height={44}
