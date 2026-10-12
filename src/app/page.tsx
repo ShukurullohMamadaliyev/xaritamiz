@@ -318,7 +318,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#F4FBF7] via-[#F9FBFA] to-[#F3F6F4] dark:bg-none dark:bg-[#0b0f19] text-zinc-900 dark:text-slate-100 transition-colors relative">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-gradient-to-b from-[#F4FBF7] via-[#F9FBFA] to-[#F3F6F4] dark:bg-none dark:bg-[#0b0f19] text-zinc-900 dark:text-slate-100 transition-colors relative">
       
       {/* Dekorativ: Orqa fon yumshoq zumrad nuri */}
       <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-emerald-100/40 dark:bg-emerald-900/10 blur-[120px] -z-10" />
@@ -338,7 +338,7 @@ export default function Home() {
       />
 
       {/* Asosiy Kontent */}
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 pt-4 sm:pt-6">
+      <main className="flex-1 max-w-3xl w-full max-w-full overflow-x-hidden mx-auto px-3.5 sm:px-4 pt-4 sm:pt-6">
         
         {/* Agar hozir marshrut natijasi ko'rsatilayotgan bo'lsa */}
         {currentRoute ? (
@@ -349,11 +349,11 @@ export default function Home() {
             onSwapStop={handleSwapStop}
           />
         ) : (
-          <div className="space-y-4 sm:space-y-5">
+          <div className="space-y-4 sm:space-y-5 w-full max-w-full overflow-x-hidden">
             
             {/* 4 Rejimli Segmented Control Tab — O'ngga scroll bo'ladigan + Vizual ko'rsatkichlar */}
-            <div className="max-w-xl mx-auto space-y-1.5">
-              <div className="relative">
+            <div className="max-w-xl w-full mx-auto space-y-1.5">
+              <div className="relative w-full">
                 {/* Chapga qaytish ko'rsatkichi (o'ngga scroll qilinganda chiqadi) */}
                 {canScrollLeft && (
                   <button
@@ -374,15 +374,15 @@ export default function Home() {
                 <div
                   ref={tabsScrollRef}
                   onScroll={updateTabsScrollState}
-                  className="bg-zinc-200/60 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar border border-zinc-200/50 dark:border-slate-700/60 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.06)] scroll-smooth"
+                  className="bg-zinc-200/60 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar border border-zinc-200/50 dark:border-slate-700/60 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.06)] scroll-smooth w-full"
                 >
                   {/* Tab 1: Erkin Istak */}
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onClick={() => {
                       triggerHaptic('light');
                       setActiveTab('ai');
-                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                      tabsScrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
                     }}
                     className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === 'ai'
@@ -397,10 +397,10 @@ export default function Home() {
                   {/* Tab 2: 4 Bosqichli Tezkor Filtr */}
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onClick={() => {
                       triggerHaptic('light');
                       setActiveTab('generator');
-                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                      tabsScrollRef.current?.scrollTo({ left: 40, behavior: 'smooth' });
                     }}
                     className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === 'generator'
@@ -415,10 +415,13 @@ export default function Home() {
                   {/* Tab 3: Menga Yaqin Joylar */}
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onClick={() => {
                       triggerHaptic('light');
                       setActiveTab('radar');
-                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                      const el = tabsScrollRef.current;
+                      if (el) {
+                        el.scrollTo({ left: Math.max(0, el.scrollWidth / 3), behavior: 'smooth' });
+                      }
                     }}
                     className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === 'radar'
@@ -434,12 +437,15 @@ export default function Home() {
                   <button
                     ref={longTripsBtnRef}
                     type="button"
-                    onClick={(e) => {
+                    onClick={() => {
                       triggerHaptic('medium');
                       setActiveTab('long_trips');
                       setHasSeenLongTrips(true);
                       handleMoodChange('quiet_nature');
-                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                      const el = tabsScrollRef.current;
+                      if (el) {
+                        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+                      }
                     }}
                     className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer relative ${
                       activeTab === 'long_trips'
