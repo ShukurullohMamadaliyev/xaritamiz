@@ -16,7 +16,13 @@ export const metadata: Metadata = {
     icon: "/logo-icon.png",
     shortcut: "/logo-icon.png",
     apple: "/logo-icon.png",
-  }
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Xaritamiz",
+  },
 };
 
 export const viewport: Viewport = {
@@ -40,6 +46,12 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         <link rel="icon" href="/logo-icon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Xaritamiz" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-[#F9FAFB] text-[#111827] selection:bg-emerald-100 selection:text-emerald-900">
         {children}

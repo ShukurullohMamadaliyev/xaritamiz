@@ -13,6 +13,7 @@ import { LiveWeatherAdvisor } from '../components/LiveWeatherAdvisor';
 import { LongTripDetailModal } from '../components/LongTripDetailModal';
 import { GastroCompassModal } from '../components/GastroCompassModal';
 import { CommunityPlacesModal, ADMIN_TELEGRAM_ID } from '../components/CommunityPlacesModal';
+import { InstallAppModal } from '../components/InstallAppModal';
 import { LongTripItem } from '../data/longTrips';
 import { 
   RoutePlan, 
@@ -36,12 +37,14 @@ export default function Home() {
   const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
   const [moodRevision, setMoodRevision] = useState<number>(0);
 
-  // Yangi Modallar: Omad Barabani, Sayohat Pasporti, SOS, Gastro-Kompas, Yangi Joy Qo'shish va Admin Panel
+  // Yangi Modallar: Omad Barabani, Sayohat Pasporti, SOS, Gastro-Kompas, Yangi Joy Qo'shish, Telefonga O'rnatish va Admin Panel
   const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showPassport, setShowPassport] = useState(false);
   const [showSos, setShowSos] = useState(false);
   const [showGastroModal, setShowGastroModal] = useState(false);
   const [showCommunityModal, setShowCommunityModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [communityModalTab, setCommunityModalTab] = useState<'add' | 'admin'>('add');
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [communityApprovedPlaces, setCommunityApprovedPlaces] = useState<LocationItem[]>([]);
@@ -186,6 +189,15 @@ export default function Home() {
         setCurrentRoute(autoRoute);
         handleMoodChange(detectMoodFromRoute(autoRoute));
       }
+
+      const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
     }
   }, []);
 
@@ -315,6 +327,7 @@ export default function Home() {
         onSurpriseClick={() => setShowSpinWheel(true)}
         onOpenPassport={() => setShowPassport(true)}
         onOpenSos={() => setShowSos(true)}
+        onOpenInstallApp={() => setShowInstallModal(true)}
         onReset={handleReset}
         musicMood={musicMood}
         moodRevision={moodRevision}
@@ -615,6 +628,22 @@ export default function Home() {
         onClose={() => setShowCommunityModal(false)}
         initialTab={communityModalTab}
         onApprovedPlacesUpdated={(places) => setCommunityApprovedPlaces(places)}
+      />
+
+      {/* 📲 Telefonga O'rnatish (iPhone & Android Bosh ekraniga ikonka) Modali */}
+      <InstallAppModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        deferredPrompt={deferredPrompt}
+        onTriggerNativeInstall={async () => {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+            setShowInstallModal(false);
+          }
+        }}
       />
 
       {/* ⛰️ Barabandan tushgan Uzoq Safar pasporti */}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Moon, Sun, Dices, Trophy, ShieldAlert } from 'lucide-react';
+import { Moon, Sun, Dices, Trophy, ShieldAlert, Smartphone } from 'lucide-react';
 import { triggerHaptic } from '../lib/utils';
 import { MoodMusicPlayer } from './MoodMusicPlayer';
 import { MusicMood } from '../lib/musicMood';
@@ -13,6 +13,7 @@ interface NavbarProps {
   onSurpriseClick: () => void;
   onOpenPassport?: () => void;
   onOpenSos?: () => void;
+  onOpenInstallApp?: () => void;
   onReset: () => void;
   musicMood?: MusicMood;
   moodRevision?: number;
@@ -24,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSurpriseClick,
   onOpenPassport,
   onOpenSos,
+  onOpenInstallApp,
   onReset,
   musicMood = 'welcome',
   moodRevision = 0
@@ -39,7 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md border-b bg-white/85 dark:bg-[#0b0f19]/85 border-zinc-200/60 dark:border-slate-800 transition-colors">
-      <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between gap-2">
         
         {/* Brand Logo & Name */}
         <button 
@@ -47,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             triggerHaptic('light');
             onReset();
           }}
-          className="flex items-center gap-2.5 sm:gap-3 text-left group transition-transform active:scale-95 cursor-pointer"
+          className="flex items-center gap-2 sm:gap-3 text-left group transition-transform active:scale-95 cursor-pointer shrink-0"
         >
           {/* Logotip: toza shaffof PNG, ramkasiz */}
           <img
@@ -55,27 +57,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             alt="Xaritamiz"
             width={44}
             height={44}
-            className="w-10 h-10 sm:w-11 sm:h-11 object-contain shrink-0"
+            className="w-9 h-9 sm:w-11 sm:h-11 object-contain shrink-0"
           />
 
           <div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="font-brand font-black text-lg sm:text-2xl tracking-tight bg-gradient-to-r from-zinc-950 via-emerald-950 to-emerald-700 dark:from-white dark:via-emerald-200 dark:to-emerald-400 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="font-brand font-black text-base sm:text-2xl tracking-tight bg-gradient-to-r from-zinc-950 via-emerald-950 to-emerald-700 dark:from-white dark:via-emerald-200 dark:to-emerald-400 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
                 Xaritamiz
               </span>
-              <span className="text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-[0_1px_3px_rgba(5,150,105,0.08)]">
+              <span className="hidden xs:inline-block text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
                 TMA
               </span>
             </div>
-            <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-800/80 dark:text-emerald-400/80 tracking-normal flex items-center gap-1.5 mt-0.5">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-800/80 dark:text-emerald-400/80 tracking-normal flex items-center gap-1 mt-0.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse"></span>
-              <span>Toshkent & 12 viloyat</span>
+              <span>Toshkent & 12 vil.</span>
             </p>
           </div>
         </button>
 
         {/* Action Controls */}
         <div className="flex items-center gap-1 sm:gap-1.5">
+          {/* 📲 Telefonga o'rnatish tugmasi (Tepada ko'rinib turadi) */}
+          {onOpenInstallApp && (
+            <button
+              onClick={() => {
+                triggerHaptic('medium');
+                onOpenInstallApp();
+              }}
+              title="Xaritamiz ilovasini telefon ekraniga o'rnatish (iPhone & Android)"
+              className="flex items-center gap-1 text-[11px] sm:text-xs font-extrabold px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-600/15 hover:bg-emerald-600/25 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 border border-emerald-500/50 dark:border-emerald-400/50 transition active:scale-95 shadow-2xs cursor-pointer"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Telefonga o‘rnatish</span>
+            </button>
+          )}
+
           {/* Kayfiyat Musiqasi Pleyeri */}
           <MoodMusicPlayer mood={musicMood} moodRevision={moodRevision} />
 
@@ -87,10 +104,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenSos();
               }}
               title="Safar Xavfsizligi, SOS (1050) va Zapravkalar"
-              className="flex items-center gap-1 text-xs font-extrabold px-2 sm:px-2.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 transition active:scale-95 shadow-2xs cursor-pointer"
+              className="flex items-center gap-1 text-xs font-extrabold px-2 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 transition active:scale-95 shadow-2xs cursor-pointer"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-              <span className="text-[11px]">SOS</span>
+              <span className="hidden sm:inline text-[11px]">SOS</span>
             </button>
           )}
 
