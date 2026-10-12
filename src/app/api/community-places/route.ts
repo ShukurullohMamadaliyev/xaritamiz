@@ -43,7 +43,7 @@ function containsBannedWord(text: string): boolean {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const adminId = searchParams.get('adminId') || '';
-  const all = loadCommunitySubmissions();
+  const all = await loadCommunitySubmissions(false);
 
   const approvedLocations: LocationItem[] = all
     .filter((item) => item.status === 'approved')
@@ -149,7 +149,7 @@ export async function POST(req: Request) {
         location
       };
 
-      addCommunitySubmission(submission);
+      await addCommunitySubmission(submission);
 
       // Telegram orqali Bosh Adminga (7048168954) Tasdiqlash / Rad etish tugmalari bilan yuborish
       const telegramSent = await sendSubmissionToAdminTelegram(submission);
@@ -159,8 +159,8 @@ export async function POST(req: Request) {
         telegramSent,
         submission,
         message: adminDirectApprove
-          ? 'Admin sifatida joy darhol tasdiqlandi va saytga qo‘shildi!'
-          : 'Joyingiz qabul qilindi va Bosh Admin (Telegram bot + Admin panel) tekshiruviga yuborildi. Tasdiqlangandan so‘ng saytda ko‘rinadi!'
+          ? 'Admin sifatida joy darhol tasdiqlandi va Cloud Bazaga qo‘shildi!'
+          : 'Joyingiz qabul qilindi va Bosh Admin (Telegram bot + Admin panel) tekshiruviga yuborildi. Tasdiqlangandan so‘ng barcha uchun saytda ko‘rinadi!'
       });
     }
 
@@ -177,17 +177,16 @@ export async function POST(req: Request) {
       const placeId = String(body.placeId || '');
       const newStatus = body.status as 'approved' | 'rejected' | 'deleted';
 
-      // Agar clientda ushbu submission obyektining to'liq nusxasi bo'lsa va server cold-start bo'lgan bo'lsa, avval tiklaymiz
       if (body.submissionSnapshot && newStatus !== 'deleted') {
-        const list = loadCommunitySubmissions();
+        const list = await loadCommunitySubmissions(true);
         if (!list.some((x) => x.id === placeId)) {
           list.unshift(body.submissionSnapshot as CommunityPlaceSubmission);
-          saveCommunitySubmissions(list);
+          await saveCommunitySubmissions(list);
         }
       }
 
-      const updated = moderateCommunitySubmission(placeId, newStatus);
-      const all = loadCommunitySubmissions();
+      const updated = await moderateCommunitySubmission(placeId, newStatus);
+      const all = await loadCommunitySubmissions(false);
 
       return NextResponse.json({
         success: true,
@@ -197,31 +196,35 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Client va Server keshini sinxronlash
+    // 3. Client va Server Cloud Bazani sinxronlash
     if (action === 'sync') {
       const clientSubmissions: CommunityPlaceSubmission[] = Array.isArray(body.submissions)
         ? body.submissions
         : [];
-      const serverList = loadCommunitySubmissions();
+      const serverList = await loadCommunitySubmissions(true);
       const map = new Map<string, CommunityPlaceSubmission>();
 
       for (const item of serverList) {
         map.set(item.id, item);
       }
+
+      let changed = false;
       for (const cItem of clientSubmissions) {
         if (!cItem || !cItem.id) continue;
         const existing = map.get(cItem.id);
         if (!existing) {
           map.set(cItem.id, cItem);
-        } else if (existing.status === 'pending' && cItem.status !== 'pending') {
-          map.set(cItem.id, cItem);
+          changed = true;
         }
       }
 
       const merged = Array.from(map.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-      saveCommunitySubmissions(merged);
+
+      if (changed) {
+        await saveCommunitySubmissions(merged);
+      }
 
       const adminId = String(body.adminId || '');
       return NextResponse.json({

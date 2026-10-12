@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
         const isApprove = data.startsWith('approve_place:');
         const placeId = data.split(':')[1] || '';
-        const updatedSub = moderateCommunitySubmission(
+        const updatedSub = await moderateCommunitySubmission(
           placeId,
           isApprove ? 'approved' : 'rejected',
           messageText
