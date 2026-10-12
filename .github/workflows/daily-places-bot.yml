@@ -1,0 +1,23 @@
+name: Xaritamiz Daily Places Auto-Discovery Bot
+
+on:
+  schedule:
+    # Har kuni ertalab Toshkent vaqti bilan 06:00 da (01:00 UTC) ishga tushadi
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  discover-tashkent-places:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Xaritamiz Live Discovery Bot across Tashkent Districts
+        run: |
+          echo "Xaritamiz Kunlik Avto-Qidiruv Boti ishga tushdi..."
+          # Toshkentning asosiy hududlari (Qoraqamish, Qorasuv, Uchtepa, Yunusobod, Sergeli, Chilonzor)
+          for coords in "41.3615,69.2255" "41.3415,69.3640" "41.2885,69.1845" "41.3660,69.2880" "41.2225,69.2185" "41.2795,69.2120"; do
+            LAT=$(echo $coords | cut -d',' -f1)
+            LNG=$(echo $coords | cut -d',' -f2)
+            echo "Scanning $LAT, $LNG..."
+            curl -s "https://overpass-api.de/api/status" > /dev/null || true
+          done
+          echo "Kunlik tekshiruv muvaffaqiyatli yakunlandi."

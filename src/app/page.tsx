@@ -19,11 +19,11 @@ import {
 import { generateRoute, generateSurpriseRoute, swapStopInRoute } from '../lib/routeGenerator';
 import { triggerHaptic } from '../lib/utils';
 import { detectMoodFromCategory, detectMoodFromFilter, detectMoodFromRoute, MusicMood } from '../lib/musicMood';
-import { Sparkles, Compass, MapPin, ArrowRight, Trash2, Bot, SlidersHorizontal } from 'lucide-react';
+import { Sparkles, Compass, MapPin, ArrowRight, Trash2, Bot, SlidersHorizontal, Mountain } from 'lucide-react';
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ai' | 'generator' | 'radar'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'generator' | 'radar' | 'long_trips'>('ai');
   const [currentRoute, setCurrentRoute] = useState<RoutePlan | null>(null);
   const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
   const [moodRevision, setMoodRevision] = useState<number>(0);
@@ -235,8 +235,8 @@ export default function Home() {
         ) : (
           <div className="space-y-6">
             
-            {/* 3 Rejimli Segmented Control Tab — Premium Zinc Island */}
-            <div className="bg-zinc-200/60 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center border border-zinc-200/50 dark:border-slate-700/60 backdrop-blur-md max-w-lg mx-auto shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+            {/* 4 Rejimli Segmented Control Tab — O'ngga scroll bo'ladigan */}
+            <div className="bg-zinc-200/60 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar border border-zinc-200/50 dark:border-slate-700/60 backdrop-blur-md max-w-xl mx-auto shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
               
               {/* Tab 1: Erkin Istak */}
               <button
@@ -245,7 +245,7 @@ export default function Home() {
                   triggerHaptic('light');
                   setActiveTab('ai');
                 }}
-                className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'ai'
                     ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
                     : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
@@ -262,7 +262,7 @@ export default function Home() {
                   triggerHaptic('light');
                   setActiveTab('generator');
                 }}
-                className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'generator'
                     ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
                     : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
@@ -279,7 +279,7 @@ export default function Home() {
                   triggerHaptic('light');
                   setActiveTab('radar');
                 }}
-                className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'radar'
                     ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
                     : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
@@ -287,6 +287,24 @@ export default function Home() {
               >
                 <Compass className={`w-3.5 h-3.5 ${activeTab === 'radar' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
                 <span>Yaqin Joylar</span>
+              </button>
+
+              {/* Tab 4: Uzoq Safarlar (12 viloyat) */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  setActiveTab('long_trips');
+                  handleMoodChange('quiet_nature');
+                }}
+                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'long_trips'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
+                    : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
+                }`}
+              >
+                <Mountain className={`w-3.5 h-3.5 ${activeTab === 'long_trips' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
+                <span>Uzoq Safarlar</span>
               </button>
 
             </div>
@@ -311,6 +329,7 @@ export default function Home() {
               />
             ) : (
               <NearMeRadar
+                mode={activeTab === 'long_trips' ? 'long_trips' : 'radar'}
                 onAddToCustomRoute={handleToggleSavedStop}
                 savedStops={savedStops}
                 onMoodChange={handleMoodChange}
@@ -322,8 +341,8 @@ export default function Home() {
 
       </main>
 
-      {/* Near Me rejimida tanlangan bekatlar uchun Floating Action Banner */}
-      {!currentRoute && activeTab === 'radar' && savedStops.length > 0 && (
+      {/* Near Me yoki Uzoq Safarlar rejimida tanlangan bekatlar uchun Floating Action Banner */}
+      {!currentRoute && (activeTab === 'radar' || activeTab === 'long_trips') && savedStops.length > 0 && (
         <div className="fixed bottom-4 left-4 right-4 z-40 max-w-lg mx-auto animate-fade-in">
           <div className="bg-white/95 dark:bg-slate-900/95 text-[#111827] dark:text-white backdrop-blur-md rounded-2xl p-3 px-4 shadow-[0_10px_35px_rgba(0,0,0,0.12)] border border-emerald-500/30 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">

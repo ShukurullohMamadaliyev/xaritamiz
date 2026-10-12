@@ -229,7 +229,7 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
 
             <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-zinc-200/60 dark:border-slate-700/50">
               <span className="text-[11px] text-zinc-400 font-medium">
-                80 ta Toshkent + 40 ta Uzoq safar (12 viloyat)
+                120+ Toshkent + 40 ta Uzoq safar + Kunlik Avto-Bot
               </span>
               <button
                 type="submit"
