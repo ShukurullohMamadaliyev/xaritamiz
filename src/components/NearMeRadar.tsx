@@ -33,22 +33,6 @@ interface NearMeRadarProps {
 
 type CategoryFilter = 'all' | 'cafe' | 'restaurant' | 'parks' | 'entertainment';
 
-// Toshkentning barcha tuman va yirik dahalari koordinatalari (GPS ruxsat bermaganda ham 1 bosishda o'tish uchun)
-const TASHKENT_AREAS: { id: string; label: string; lat: number; lng: number }[] = [
-  { id: 'center', label: '📍 Markaz (Skver)', lat: 41.3111, lng: 69.2797 },
-  { id: 'qoraqamish', label: '🌊 Qoraqamish / Olmazor', lat: 41.3615, lng: 69.2255 },
-  { id: 'qorasuv', label: '🌿 Qorasuv / TTZ', lat: 41.3415, lng: 69.3640 },
-  { id: 'uchtepa', label: '🌳 Uchtepa / Lutfiy', lat: 41.2885, lng: 69.1845 },
-  { id: 'yunusobod', label: '🌲 Yunusobod / Bo‘zsuv', lat: 41.3660, lng: 69.2880 },
-  { id: 'chilonzor', label: '🍃 Chilonzor / Qatortol', lat: 41.2795, lng: 69.2120 },
-  { id: 'sergeli', label: '🌾 Sergeli / Yangihayot', lat: 41.2225, lng: 69.2185 },
-  { id: 'bektemir', label: '💧 Bektemir / Rohat', lat: 41.2520, lng: 69.3450 },
-  { id: 'yashnobod', label: '🌸 Yashnobod / Tuzel', lat: 41.2985, lng: 69.3380 },
-  { id: 'mirzo_ulugbek', label: '🌲 Mirzo Ulug‘bek', lat: 41.3320, lng: 69.3285 },
-  { id: 'mirobod', label: '☕ Mirobod / Shevchenko', lat: 41.3005, lng: 69.2760 },
-  { id: 'yakkasaroy', label: '🏡 Yakkasaroy / Rakat', lat: 41.2895, lng: 69.2545 }
-];
-
 const BOT_STORAGE_KEY = 'xaritamiz_daily_bot_places_v1';
 
 const sectionCls =
@@ -64,7 +48,6 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
 
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>(TASHKENT_CENTER);
   const [locationName, setLocationName] = useState<string>('Toshkent Markazi (Amir Temur xiyoboni)');
-  const [selectedAreaId, setSelectedAreaId] = useState<string>('center');
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
@@ -147,17 +130,13 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
     try {
       const coords = await getUserLocation();
       setUserCoords(coords);
-      setSelectedAreaId('gps');
-      setLocationName('Sizning joriy GPS joylashuvingiz');
+      setLocationName('Sizning joriy joylashuvingiz');
       triggerHaptic('success');
       runBotDiscovery(coords.lat, coords.lng);
     } catch (err) {
       console.warn('Geolokatsiya olishda xatolik:', err);
-      setGeoError(
-        'Joylashuvga ruxsat berilmadi — pastdagi hudud tugmalaridan (masalan: Qoraqamish, Qorasuv, Sergeli) o‘z hududingizni tanlashingiz mumkin.'
-      );
+      setGeoError('Joylashuvni aniqlashga ruxsat berilmadi. Toshkent markazi asos qilib olindi.');
       setUserCoords(TASHKENT_CENTER);
-      setSelectedAreaId('center');
       setLocationName(TASHKENT_CENTER.name);
       triggerHaptic('warning');
       runBotDiscovery(TASHKENT_CENTER.lat, TASHKENT_CENTER.lng);
@@ -172,13 +151,12 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
     }
   }, [isLongTripsMode]);
 
-  const handleSelectArea = (area: { id: string; label: string; lat: number; lng: number }) => {
+  const handleSelectTashkentCenter = () => {
     triggerHaptic('light');
-    setSelectedAreaId(area.id);
-    setUserCoords({ lat: area.lat, lng: area.lng });
-    setLocationName(area.label.replace(/^[^\s]+\s/, '') + ' hududi');
+    setUserCoords(TASHKENT_CENTER);
+    setLocationName(TASHKENT_CENTER.name);
     setGeoError(null);
-    runBotDiscovery(area.lat, area.lng);
+    runBotDiscovery(TASHKENT_CENTER.lat, TASHKENT_CENTER.lng);
   };
 
   const handleResetFilters = () => {
@@ -362,11 +340,7 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
                 type="button"
                 onClick={handleDetectLocation}
                 disabled={isLocating}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer active:scale-95 disabled:opacity-60 ${
-                  selectedAreaId === 'gps'
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                    : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/60 dark:border-slate-700'
-                }`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-60"
                 title="GPS orqali joylashuvni yangilash"
               >
                 <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-bounce' : ''}`} />
@@ -375,12 +349,8 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
 
               <button
                 type="button"
-                onClick={() => handleSelectArea(TASHKENT_AREAS[0])}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer active:scale-95 ${
-                  selectedAreaId === 'center'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-zinc-100 hover:bg-zinc-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 border border-zinc-200/60 dark:border-slate-700'
-                }`}
+                onClick={handleSelectTashkentCenter}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-zinc-700 dark:text-slate-200 text-xs font-medium transition border border-zinc-200/60 dark:border-slate-700 cursor-pointer active:scale-95"
                 title="Toshkent markaziga o'tish"
               >
                 Markaz
@@ -388,37 +358,6 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
             </div>
           )}
         </div>
-
-        {/* Toshkent tuman va mahallalari bo'yicha tezkor o'tish (Qoraqamish, Qorasuv, Uchtepa, Sergeli va h.k.) */}
-        {!isLongTripsMode && (
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between text-[11px] text-zinc-400">
-              <span className="font-semibold uppercase tracking-wider">
-                Toshkent hududlari (bosib yaqin joylarni ko‘ring):
-              </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                O‘ngga suring →
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-              {TASHKENT_AREAS.map((area) => {
-                const isSelected = selectedAreaId === area.id;
-                return (
-                  <button
-                    key={area.id}
-                    type="button"
-                    onClick={() => handleSelectArea(area)}
-                    className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer active:scale-95 ${
-                      isSelected ? chipActive : chipInactive
-                    }`}
-                  >
-                    {area.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Kunlik Avto-Qidiruv Boti status qatori */}
         {!isLongTripsMode && (
