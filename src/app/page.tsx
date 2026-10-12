@@ -160,6 +160,10 @@ export default function Home() {
         setShowCommunityModal(true);
       }
 
+      if (params.get('install') === '1') {
+        setShowInstallModal(true);
+      }
+
       // Tasdiqlangan hamjamiyat joylarini yuklash
       fetch(`/api/community-places?adminId=${detectedAdmin ? ADMIN_TELEGRAM_ID : ''}`)
         .then((r) => r.json())

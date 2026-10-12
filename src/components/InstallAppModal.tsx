@@ -7,10 +7,10 @@ import {
   Smartphone,
   Share,
   PlusSquare,
+  MoreHorizontal,
   MoreVertical,
   Compass,
-  Check,
-  Copy,
+  ExternalLink,
   Download,
   Sparkles
 } from 'lucide-react';
@@ -23,6 +23,8 @@ interface InstallAppModalProps {
   onTriggerNativeInstall?: () => void;
 }
 
+const INSTALL_TARGET_URL = 'https://xaritamiz.vercel.app/?install=1';
+
 export const InstallAppModal: React.FC<InstallAppModalProps> = ({
   isOpen,
   onClose,
@@ -31,7 +33,7 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
   const [platformTab, setPlatformTab] = useState<'ios' | 'android'>('ios');
-  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [isInsideTelegram, setIsInsideTelegram] = useState(false);
   const [canTgHomeScreen, setCanTgHomeScreen] = useState(false);
 
   useEffect(() => {
@@ -45,6 +47,9 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
       }
 
       const tg = (window as any).Telegram?.WebApp;
+      if (tg && (tg.initData || tg.platform !== 'unknown')) {
+        setIsInsideTelegram(true);
+      }
       if (tg && typeof tg.addToHomeScreen === 'function') {
         setCanTgHomeScreen(true);
       }
@@ -53,14 +58,45 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
 
   if (!isOpen || !mounted) return null;
 
-  const handleCopyUrl = () => {
+  /**
+   * 1 bosishda to'g'ridan-to'g'ri Safari (iPhone) yoki Chrome (Android) brauzerini ochish!
+   * Telegram Mini App ichida `Telegram.WebApp.openLink` tashqi tizim brauzerini (Safari/Chrome) darhol ochadi.
+   */
+  const handleOpenInSystemBrowser = () => {
     triggerHaptic('success');
-    const url = 'https://xaritamiz.vercel.app';
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
+    const tg = (window as any).Telegram?.WebApp;
+
+    // 1. Agar Telegram Mini App ichida bo'lsa — rasmiy openLink funksiyasi Safari/Chrome'ni 1 bosishda ochadi
+    if (tg && typeof tg.openLink === 'function') {
+      try {
+        tg.openLink(INSTALL_TARGET_URL, { try_instant_view: false });
+        return;
+      } catch {
+        // fallback pastda
+      }
     }
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2500);
+
+    // 2. iPhone'da boshqa ichki brauzerda bo'lsa x-safari-https sxemasi orqali Safari'ni ochishga urinish
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('iphone') || ua.includes('ipad')) {
+      window.location.href = `x-safari-${INSTALL_TARGET_URL}`;
+      setTimeout(() => {
+        window.open(INSTALL_TARGET_URL, '_blank', 'noopener,noreferrer');
+      }, 400);
+      return;
+    }
+
+    // 3. Android'da Chrome intent orqali ochish
+    if (ua.includes('android')) {
+      window.location.href =
+        'intent://xaritamiz.vercel.app/?install=1#Intent;scheme=https;package=com.android.chrome;end';
+      setTimeout(() => {
+        window.open(INSTALL_TARGET_URL, '_blank', 'noopener,noreferrer');
+      }, 400);
+      return;
+    }
+
+    window.open(INSTALL_TARGET_URL, '_blank', 'noopener,noreferrer');
   };
 
   const handleTelegramAddToHome = () => {
@@ -132,18 +168,6 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
           </button>
         )}
 
-        {/* Agar Telegram 8.0+ ichida addToHomeScreen funksiyasi mavjud bo'lsa */}
-        {canTgHomeScreen && (
-          <button
-            type="button"
-            onClick={handleTelegramAddToHome}
-            className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600/30 hover:bg-emerald-600/40 border border-emerald-400/50 text-emerald-200 font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
-          >
-            <Smartphone className="w-4 h-4 text-emerald-300" />
-            <span>📲 Telegram orqali Bosh ekranga qo‘shish</span>
-          </button>
-        )}
-
         {/* Platforma tanlash: iPhone vs Android */}
         <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-black/35 border border-emerald-500/25">
           <button
@@ -182,33 +206,46 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
           <div className="p-4 rounded-2xl bg-black/30 border border-emerald-500/25 space-y-3.5">
             <div>
               <h4 className="text-base font-black text-white">
-                iPhone ga o‘rnatish
+                iPhone ga o‘rnatish (Safari orqali)
               </h4>
               <p className="text-xs text-emerald-200/80 mt-0.5">
                 Xaritamiz ilovasi bosh ekranda alohida ikonka bo‘lib turadi.
               </p>
             </div>
 
-            {/* Telegram ichidan kirganlar uchun muhim eslatma */}
-            <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/40 flex items-start gap-2.5">
-              <Compass className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-emerald-100 leading-relaxed">
-                <b>Telegram ichida bo‘lsangiz:</b> Avval ekranning eng pastki o‘ng burchagidagi{' '}
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-500/25 text-emerald-300 font-bold">
-                  🧭 Kompas (Safari)
-                </span>{' '}
-                tugmasini (yoki tepada <b>••• → Open in Safari</b>) bosing.
-              </p>
-            </div>
+            {/* 1-BOSISHDA SAFARI'DA OCHISH TUGMASI */}
+            <button
+              type="button"
+              onClick={handleOpenInSystemBrowser}
+              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition active:scale-95 cursor-pointer"
+            >
+              <Compass className="w-4 h-4 shrink-0" />
+              <span>🧭 Bosib to‘g‘ridan-to‘g‘ri Safari’da ochish</span>
+              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            </button>
 
-            {/* 3 ta qadam */}
-            <ol className="space-y-3 text-xs sm:text-sm text-emerald-50">
+            {/* Safari ichida qilinadigan qadamlar (3 ta nuqta + Ulashish + Add to Home Screen) */}
+            <ol className="space-y-3 text-xs sm:text-sm text-emerald-50 pt-1">
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
                   1
                 </span>
                 <div className="leading-relaxed">
-                  Pastdagi{' '}
+                  Yuqoridagi{' '}
+                  <b className="text-sky-300">«🧭 Safari’da ochish»</b> tugmasini bosing (yoki pastki o‘ngdagi 🧭 kompasni bosing).
+                </div>
+              </li>
+
+              <li className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                  2
+                </span>
+                <div className="leading-relaxed">
+                  Safari ochilgach, pastki paneldagi{' '}
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 font-black text-white">
+                    <MoreHorizontal className="w-3.5 h-3.5 text-emerald-400 inline" /> 3 ta nuqta (•••)
+                  </span>{' '}
+                  va undan so‘ng{' '}
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 font-black text-white">
                     Ulashish <Share className="w-3.5 h-3.5 text-sky-400 inline" /> (⬆️)
                   </span>{' '}
@@ -218,27 +255,27 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
 
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                  2
+                  3
                 </span>
                 <div className="leading-relaxed">
-                  Ochilgan menyudan pastroqqa tushib,{' '}
+                  Ochilgan menyudan pastga tushib (yoki <b>«Ko‘proq / Ещё •••»</b> ni bosib),{' '}
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 font-black text-white">
                     <PlusSquare className="w-3.5 h-3.5 text-emerald-400 inline" /> «Add to Home Screen»
                   </span>{' '}
-                  (yoki <b>«На экран Домой»</b> / <b>«Asosiy ekranga qo‘shish»</b>) ni tanlang.
+                  (<b>«На экран Домой»</b> / <b>«Asosiy ekranga qo‘shish»</b>) ni tanlang.
                 </div>
               </li>
 
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                  3
+                  4
                 </span>
                 <div className="leading-relaxed">
                   Yuqori o‘ng burchakdagi{' '}
                   <span className="px-2 py-0.5 rounded-md bg-emerald-500/30 font-black text-emerald-200">
-                    «Add» («Добавить»)
+                    «Add» («Добавить» / «Qo‘shish»)
                   </span>{' '}
-                  ni bosing — <b>Xaritamiz</b> ikonkasi bosh ekranga qo‘shiladi!
+                  tugmasini bosing — <b>Xaritamiz</b> ikonkasi telefoningiz ekraniga tushadi!
                 </div>
               </li>
             </ol>
@@ -250,35 +287,32 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
           <div className="p-4 rounded-2xl bg-black/30 border border-emerald-500/25 space-y-3.5">
             <div>
               <h4 className="text-base font-black text-white">
-                Android ga o‘rnatish
+                Android ga o‘rnatish (Chrome orqali)
               </h4>
               <p className="text-xs text-emerald-200/80 mt-0.5">
                 Xaritamiz ilovasi telefoningiz ekranida alohida ilova bo‘lib turadi.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/40 flex items-start gap-2.5">
-              <MoreVertical className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-emerald-100 leading-relaxed">
-                <b>Telegram ichida bo‘lsangiz:</b> Yuqori o‘ng burchakdagi{' '}
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/25 text-emerald-300 font-bold">
-                  ⋮ (Uch nuqta)
-                </span>{' '}
-                tugmasini bosib, <b>«Add to Home Screen»</b> yoki <b>«Open in Chrome»</b> ni tanlang.
-              </p>
-            </div>
+            {/* 1-BOSISHDA CHROME'DA OCHISH TUGMASI */}
+            <button
+              type="button"
+              onClick={handleOpenInSystemBrowser}
+              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition active:scale-95 cursor-pointer"
+            >
+              <Compass className="w-4 h-4 shrink-0" />
+              <span>🌐 Bosib to‘g‘ridan-to‘g‘ri Chrome’da ochish</span>
+              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            </button>
 
-            <ol className="space-y-3 text-xs sm:text-sm text-emerald-50">
+            <ol className="space-y-3 text-xs sm:text-sm text-emerald-50 pt-1">
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
                   1
                 </span>
                 <div className="leading-relaxed">
-                  Brauzerning yuqori o‘ng burchagidagi{' '}
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 font-black text-white">
-                    <MoreVertical className="w-3.5 h-3.5 text-emerald-400 inline" /> menyu (⋮)
-                  </span>{' '}
-                  tugmasini bosing.
+                  Yuqoridagi{' '}
+                  <b className="text-emerald-300">«🌐 Chrome’da ochish»</b> tugmasini bosing.
                 </div>
               </li>
 
@@ -287,11 +321,11 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                   2
                 </span>
                 <div className="leading-relaxed">
-                  Ro‘yxatdan{' '}
+                  Brauzerning yuqori o‘ng burchagidagi{' '}
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 font-black text-white">
-                    📲 «Ilovani o‘rnatish» («Установить приложение»)
+                    <MoreVertical className="w-3.5 h-3.5 text-emerald-400 inline" /> 3 ta nuqta (⋮)
                   </span>{' '}
-                  yoki <b>«Bosh ekranga qo‘shish»</b> ni tanlang.
+                  tugmasini bosing.
                 </div>
               </li>
 
@@ -300,36 +334,30 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
                   3
                 </span>
                 <div className="leading-relaxed">
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/30 font-black text-emerald-200">
-                    «O‘rnatish» («Установить»)
+                  Menyudan{' '}
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 font-black text-white">
+                    📲 «Ilovani o‘rnatish» («Установить приложение»)
                   </span>{' '}
-                  ni bosing — <b>Xaritamiz</b> ikonkasi asosiy ekranga qo‘shiladi!
+                  yoki <b>«Bosh ekranga qo‘shish»</b> ni tanlab, <b>«O‘rnatish»</b> ni bosing!
                 </div>
               </li>
             </ol>
           </div>
         )}
 
-        {/* Havolani nusxalash (Safari/Chrome da ochish uchun qulaylik) */}
-        <button
-          type="button"
-          onClick={handleCopyUrl}
-          className="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-emerald-200 flex items-center justify-center gap-2 transition cursor-pointer"
-        >
-          {copiedUrl ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Havola nusxalandi! Endi Safari yoki Chrome’da oching</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5 text-emerald-400" />
-              <span>🔗 Sayt havolasini nusxalash (Safari / Chrome uchun)</span>
-            </>
-          )}
-        </button>
+        {/* Agar Telegram 8.0+ ichida addToHomeScreen funksiyasi mavjud bo'lsa */}
+        {canTgHomeScreen && isInsideTelegram && (
+          <button
+            type="button"
+            onClick={handleTelegramAddToHome}
+            className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600/25 hover:bg-emerald-600/35 border border-emerald-400/40 text-emerald-200 font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+          >
+            <Smartphone className="w-4 h-4 text-emerald-300" />
+            <span>📲 Yoki Telegram orqali Bosh ekranga qo‘shish</span>
+          </button>
+        )}
 
-        {/* Tushunarli tugmasi (Xuddi skrinshotdagidek yashil katta tugma) */}
+        {/* Tushunarli tugmasi */}
         <button
           type="button"
           onClick={() => {
