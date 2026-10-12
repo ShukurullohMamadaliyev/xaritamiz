@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { LocationItem, CompanionType } from '../types';
 import { TAXI_PROVIDERS, handleTaxiClick, getYandexMapsUrl, getGoogleMapsUrl, triggerHaptic } from '../lib/utils';
+import { getLivePlaceStatus } from '../lib/liveStatus';
 
 interface NearPlaceCardProps {
   location: LocationItem;
@@ -42,6 +43,7 @@ export const NearPlaceCard: React.FC<NearPlaceCardProps> = ({
   isAddedToRoute = false
 }) => {
   const [justAdded, setJustAdded] = useState(false);
+  const liveStatus = getLivePlaceStatus(location);
 
   const handleAdd = () => {
     triggerHaptic('success');
@@ -98,6 +100,35 @@ export const NearPlaceCard: React.FC<NearPlaceCardProps> = ({
       <div className="p-3.5 sm:p-4 space-y-3 flex-1 flex flex-col justify-between">
         
         <div className="space-y-2.5">
+          {/* ⚡ Jonli Status: Hozir ochiqmi va Gavjumlik darajasi */}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 p-2 rounded-xl bg-zinc-50/90 dark:bg-slate-800/60 border border-zinc-200/60 dark:border-slate-700/70 text-[10px]">
+            <span
+              className={`inline-flex items-center gap-1.5 font-extrabold ${
+                liveStatus.statusColor === 'emerald'
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : liveStatus.statusColor === 'amber'
+                    ? 'text-amber-700 dark:text-amber-400'
+                    : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  liveStatus.statusColor === 'emerald'
+                    ? 'bg-emerald-500 animate-pulse'
+                    : liveStatus.statusColor === 'amber'
+                      ? 'bg-amber-500 animate-pulse'
+                      : 'bg-rose-500'
+                }`}
+              />
+              <span>{liveStatus.statusLabel}</span>
+            </span>
+
+            <span className="inline-flex items-center gap-1 font-semibold text-zinc-600 dark:text-slate-300">
+              <Users className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <span>{liveStatus.crowdLabel}</span>
+            </span>
+          </div>
+
           {/* Teglar: monoxrom zumrad */}
           <div className="flex flex-wrap items-center gap-1.5">
             {location.companionTags.map(tag => {

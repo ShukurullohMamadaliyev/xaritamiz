@@ -18,6 +18,7 @@ import { LocationItem, CompanionType } from '../types';
 import { LOCATIONS_DATABASE } from '../data/locations';
 import { LONG_TRIPS_DATABASE, LongTripItem, LongTripNatureType } from '../data/longTrips';
 import { calculateDistanceMeters, formatDistance, getUserLocation, TASHKENT_CENTER } from '../lib/geoUtils';
+import { getLivePlaceStatus } from '../lib/liveStatus';
 import { NearPlaceCard } from './NearPlaceCard';
 import { LongTripCard } from './LongTripCard';
 import { LongTripDetailModal } from './LongTripDetailModal';
@@ -32,6 +33,7 @@ interface NearMeRadarProps {
 }
 
 type CategoryFilter = 'all' | 'cafe' | 'restaurant' | 'parks' | 'entertainment';
+type LiveFilterType = 'all' | 'open_now' | 'open_24_7' | 'calm_now';
 
 const BOT_STORAGE_KEY = 'xaritamiz_daily_bot_places_v1';
 
@@ -61,6 +63,7 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
   // Toshkent Near Me filters
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedCompanion, setSelectedCompanion] = useState<CompanionType | 'all'>('all');
+  const [liveStatusFilter, setLiveStatusFilter] = useState<LiveFilterType>('all');
   const [maxRadiusKm, setMaxRadiusKm] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -168,10 +171,18 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
     } else {
       setSelectedCategory('all');
       setSelectedCompanion('all');
+      setLiveStatusFilter('all');
       setMaxRadiusKm(0);
       setSearchQuery('');
     }
   };
+
+  const liveStatusChips: { id: LiveFilterType; label: string }[] = [
+    { id: 'all', label: '🌐 Barchasi' },
+    { id: 'open_now', label: '🟢 Hozir ochiqlar' },
+    { id: 'open_24_7', label: '🌙 24/7 Ochiq (Tungi)' },
+    { id: 'calm_now', label: '🍃 Hozir eng sokin (<40% band)' }
+  ];
 
   const categoryChips: { id: CategoryFilter; label: string }[] = [
     { id: 'all', label: 'Barchasi' },
@@ -243,6 +254,13 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
         if (!matchTitle && !matchDistrict && !matchAddress && !matchLabel) return false;
       }
 
+      if (liveStatusFilter !== 'all') {
+        const live = getLivePlaceStatus(place);
+        if (liveStatusFilter === 'open_now' && !live.isOpen) return false;
+        if (liveStatusFilter === 'open_24_7' && !live.is24Hours) return false;
+        if (liveStatusFilter === 'calm_now' && (!live.isOpen || live.crowdPercent > 40)) return false;
+      }
+
       if (selectedCategory !== 'all') {
         if (selectedCategory === 'cafe' && place.category !== 'cafe') return false;
         if (selectedCategory === 'restaurant' && place.category !== 'restaurant') return false;
@@ -270,7 +288,7 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
 
       return true;
     });
-  }, [allTashkentPlaces, userCoords, selectedCategory, selectedCompanion, maxRadiusKm, searchQuery]);
+  }, [allTashkentPlaces, userCoords, selectedCategory, selectedCompanion, liveStatusFilter, maxRadiusKm, searchQuery]);
 
   const filteredLongTrips = useMemo(() => {
     return LONG_TRIPS_DATABASE.filter((trip) => {
@@ -301,6 +319,7 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
       (searchQuery.trim() ? 1 : 0)
     : (selectedCategory !== 'all' ? 1 : 0) +
       (selectedCompanion !== 'all' ? 1 : 0) +
+      (liveStatusFilter !== 'all' ? 1 : 0) +
       (maxRadiusKm > 0 ? 1 : 0) +
       (searchQuery.trim() ? 1 : 0);
 
@@ -518,6 +537,41 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
                 <span>Tozalash ({activeFiltersCount})</span>
               </button>
             )}
+          </div>
+
+          {/* 0. Jonli Holat & Sokinlik Radari (Live Status) */}
+          <div className="space-y-1.5 pb-1 border-b border-zinc-100 dark:border-slate-800/80">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                ⚡ Jonli Holat & Sokinlik Radari:
+              </span>
+              <span className="text-[10px] font-semibold text-zinc-400">
+                Real vaqt rejimida
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {liveStatusChips.map((chip) => {
+                const isSelected = liveStatusFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setLiveStatusFilter(chip.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer active:scale-95 ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                        : chipInactive
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* A. Toifalar */}

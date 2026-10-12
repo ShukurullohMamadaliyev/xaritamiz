@@ -18,9 +18,11 @@ import {
 } from 'lucide-react';
 import { RoutePlan, RouteStop } from '../types';
 import { LOCATIONS_DATABASE } from '../data/locations';
-import { LONG_TRIPS_DATABASE, longTripToLocationItem } from '../data/longTrips';
+import { LONG_TRIPS_DATABASE, LongTripItem, longTripToLocationItem } from '../data/longTrips';
 import { triggerHaptic } from '../lib/utils';
 import { detectMoodFromRoute, detectMoodFromText, MusicMood } from '../lib/musicMood';
+import { MoodAndVisualFinder } from './MoodAndVisualFinder';
+import { LongTripDetailModal } from './LongTripDetailModal';
 
 interface AiRouteFinderProps {
   onRouteGenerated: (route: RoutePlan) => void;
@@ -34,6 +36,7 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedLongTrip, setSelectedLongTrip] = useState<LongTripItem | null>(null);
 
   // Voice AI (Ovozli Qidiruv) state
   const [isListening, setIsListening] = useState(false);
@@ -421,6 +424,19 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 🧠 Kayfiyat Skaneri & 📸 AI Rasm Tahlilchisi */}
+      <MoodAndVisualFinder
+        onRouteGenerated={onRouteGenerated}
+        onSelectLongTrip={(trip) => setSelectedLongTrip(trip)}
+        onMoodChange={onMoodChange}
+      />
+
+      {/* Uzoq safar detail modali (Rasm tahlilchisidan bosilganda) */}
+      <LongTripDetailModal
+        trip={selectedLongTrip}
+        onClose={() => setSelectedLongTrip(null)}
+      />
 
       {/* Loading skeleton */}
       {isLoading && (
