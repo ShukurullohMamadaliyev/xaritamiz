@@ -11,6 +11,8 @@ import { PassportModal } from '../components/PassportModal';
 import { SafetySosModal } from '../components/SafetySosModal';
 import { LiveWeatherAdvisor } from '../components/LiveWeatherAdvisor';
 import { LongTripDetailModal } from '../components/LongTripDetailModal';
+import { GastroCompassModal } from '../components/GastroCompassModal';
+import { CommunityPlacesModal, ADMIN_TELEGRAM_ID } from '../components/CommunityPlacesModal';
 import { LongTripItem } from '../data/longTrips';
 import { 
   RoutePlan, 
@@ -25,7 +27,7 @@ import {
 import { generateRoute, generateSurpriseRoute, swapStopInRoute } from '../lib/routeGenerator';
 import { triggerHaptic } from '../lib/utils';
 import { detectMoodFromCategory, detectMoodFromFilter, detectMoodFromRoute, MusicMood } from '../lib/musicMood';
-import { Sparkles, Compass, MapPin, ArrowRight, Trash2, Bot, SlidersHorizontal, Mountain, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Sparkles, Compass, MapPin, ArrowRight, Trash2, Bot, SlidersHorizontal, Mountain, ChevronRight, ChevronLeft, Utensils, PlusCircle, ShieldCheck } from 'lucide-react';
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
@@ -34,10 +36,15 @@ export default function Home() {
   const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
   const [moodRevision, setMoodRevision] = useState<number>(0);
 
-  // Yangi Modallar: Omad Barabani, Sayohat Pasporti, SOS va Ruletkadan tanlangan Uzoq Safar
+  // Yangi Modallar: Omad Barabani, Sayohat Pasporti, SOS, Gastro-Kompas, Yangi Joy Qo'shish va Admin Panel
   const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showPassport, setShowPassport] = useState(false);
   const [showSos, setShowSos] = useState(false);
+  const [showGastroModal, setShowGastroModal] = useState(false);
+  const [showCommunityModal, setShowCommunityModal] = useState(false);
+  const [communityModalTab, setCommunityModalTab] = useState<'add' | 'admin'>('add');
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [communityApprovedPlaces, setCommunityApprovedPlaces] = useState<LocationItem[]>([]);
   const [wheelSelectedTrip, setWheelSelectedTrip] = useState<LongTripItem | null>(null);
 
   // Yuqori tablar scroll ko'rsatkichi uchun state va ref
@@ -130,6 +137,37 @@ export default function Home() {
       } else if (tabParam === 'generator') {
         setActiveTab('generator');
       }
+
+      // Admin ID (7048168954) tekshiruvi: Telegram WebApp yoki URL ?admin_id=7048168954
+      const tgUserId = tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : '';
+      const urlAdminId = params.get('admin_id') || '';
+      const savedAdminId = localStorage.getItem('xaritamiz_verified_admin_id') || '';
+      const detectedAdmin =
+        tgUserId === ADMIN_TELEGRAM_ID ||
+        urlAdminId === ADMIN_TELEGRAM_ID ||
+        savedAdminId === ADMIN_TELEGRAM_ID;
+
+      if (detectedAdmin) {
+        setIsAdminUser(true);
+        localStorage.setItem('xaritamiz_verified_admin_id', ADMIN_TELEGRAM_ID);
+      }
+
+      if (params.get('open_admin') === '1' && detectedAdmin) {
+        setCommunityModalTab('admin');
+        setShowCommunityModal(true);
+      }
+
+      // Tasdiqlangan hamjamiyat joylarini yuklash
+      fetch(`/api/community-places?adminId=${detectedAdmin ? ADMIN_TELEGRAM_ID : ''}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data.approvedPlaces)) {
+            setCommunityApprovedPlaces(data.approvedPlaces);
+          }
+        })
+        .catch(() => {
+          // ignore
+        });
 
       const c = params.get('c') as CompanionType | null;
       const v = params.get('v') as VibeType | null;
@@ -458,6 +496,49 @@ export default function Home() {
               compact
             />
 
+            {/* 🍱 Gastro-Kompas & ➕ Yangi Sokin Joy Qo'shish (+ 🛡️ Admin Panel 7048168954 uchun) */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  setShowGastroModal(true);
+                }}
+                className="flex-1 min-w-[155px] py-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-300/80 dark:border-amber-700/60 text-amber-950 dark:text-amber-200 text-xs font-extrabold flex items-center justify-center gap-2 shadow-2xs transition active:scale-95 cursor-pointer"
+              >
+                <Utensils className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>🍱 Gastro-Kompas (Taomlar)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  setCommunityModalTab('add');
+                  setShowCommunityModal(true);
+                }}
+                className="flex-1 min-w-[155px] py-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 border border-emerald-300/80 dark:border-emerald-700/60 text-emerald-950 dark:text-emerald-200 text-xs font-extrabold flex items-center justify-center gap-2 shadow-2xs transition active:scale-95 cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>➕ Sokin joy qo‘shish</span>
+              </button>
+
+              {isAdminUser && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    setCommunityModalTab('admin');
+                    setShowCommunityModal(true);
+                  }}
+                  className="py-2.5 px-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-200 shrink-0" />
+                  <span>🛡️ Admin Panel</span>
+                </button>
+              )}
+            </div>
+
             {/* Faol rejim kontenti */}
             {activeTab === 'ai' ? (
               <AiRouteFinder
@@ -481,6 +562,12 @@ export default function Home() {
                 onAddToCustomRoute={handleToggleSavedStop}
                 savedStops={savedStops}
                 onMoodChange={handleMoodChange}
+                communityApprovedPlaces={communityApprovedPlaces}
+                onOpenAddPlaceModal={() => {
+                  setCommunityModalTab('add');
+                  setShowCommunityModal(true);
+                }}
+                onOpenGastroModal={() => setShowGastroModal(true)}
               />
             )}
 
@@ -514,6 +601,20 @@ export default function Home() {
       <SafetySosModal
         isOpen={showSos}
         onClose={() => setShowSos(false)}
+      />
+
+      {/* 🍱 Gastro-Kompas Modali */}
+      <GastroCompassModal
+        isOpen={showGastroModal}
+        onClose={() => setShowGastroModal(false)}
+      />
+
+      {/* ➕ Yangi Sokin Joy Qo'shish & 🛡️ Admin Panel (7048168954) Modali */}
+      <CommunityPlacesModal
+        isOpen={showCommunityModal}
+        onClose={() => setShowCommunityModal(false)}
+        initialTab={communityModalTab}
+        onApprovedPlacesUpdated={(places) => setCommunityApprovedPlaces(places)}
       />
 
       {/* ⛰️ Barabandan tushgan Uzoq Safar pasporti */}

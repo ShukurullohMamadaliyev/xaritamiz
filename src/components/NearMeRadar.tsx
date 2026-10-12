@@ -30,6 +30,9 @@ interface NearMeRadarProps {
   onAddToCustomRoute?: (location: LocationItem) => void;
   savedStops?: LocationItem[];
   onMoodChange?: (mood: MusicMood) => void;
+  communityApprovedPlaces?: LocationItem[];
+  onOpenAddPlaceModal?: () => void;
+  onOpenGastroModal?: () => void;
 }
 
 type CategoryFilter = 'all' | 'cafe' | 'restaurant' | 'parks' | 'entertainment';
@@ -44,7 +47,10 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
   mode = 'radar',
   onAddToCustomRoute,
   savedStops = [],
-  onMoodChange
+  onMoodChange,
+  communityApprovedPlaces = [],
+  onOpenAddPlaceModal,
+  onOpenGastroModal
 }) => {
   const isLongTripsMode = mode === 'long_trips';
 
@@ -222,10 +228,10 @@ export const NearMeRadar: React.FC<NearMeRadarProps> = ({
     return ['all', ...uniqueRegions];
   }, []);
 
-  // Asosiy 121 ta Toshkent bazasi + Avto-Bot topgan joylar birlashmasi
+  // Foydalanuvchilar qo'shgan (Admin tasdiqlagan) + Asosiy 121 ta Toshkent bazasi + Avto-Bot topgan joylar birlashmasi
   const allTashkentPlaces = useMemo(() => {
-    return [...LOCATIONS_DATABASE, ...botPlaces];
-  }, [botPlaces]);
+    return [...communityApprovedPlaces, ...LOCATIONS_DATABASE, ...botPlaces];
+  }, [communityApprovedPlaces, botPlaces]);
 
   const sortedAndFilteredPlaces = useMemo(() => {
     const withDistances: LocationItem[] = allTashkentPlaces.map((place) => {

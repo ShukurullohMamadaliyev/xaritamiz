@@ -46,6 +46,7 @@ import {
   saveChecklistForTrip,
   toggleVisitedId
 } from '../lib/travelPassport';
+import { getGastroDishesForRegionText } from '../data/gastroCompas';
 
 interface LongTripDetailModalProps {
   trip: LongTripItem | null;
@@ -159,6 +160,7 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
   const checkedCount = checklist.filter((i) => i.checked).length;
   const checklistPct = checklist.length > 0 ? Math.round((checkedCount / checklist.length) * 100) : 0;
   const photoSpots = getPhotoSpotsForTrip(trip);
+  const regionalDishes = getGastroDishesForRegionText(`${trip.region} ${trip.title}`);
 
   const transportModes = [
     {
@@ -561,6 +563,53 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* C1.5. 🍱 Gastro-Kompas: Bu hududda nima yeyish kerak? */}
+          {regionalDishes.length > 0 && (
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 dark:from-amber-950/30 dark:via-slate-900 dark:to-orange-950/20 border border-amber-200/80 dark:border-amber-800/50 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
+                  <Utensils className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>🍱 Gastro-Kompas: Bu hududda nima yeyish kerak?</span>
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-bold">
+                  100% Halol & Milliy
+                </span>
+              </div>
+
+              <div className="space-y-2.5">
+                {regionalDishes.map((dish) => (
+                  <div
+                    key={dish.id}
+                    className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-amber-200/60 dark:border-amber-800/40 space-y-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{dish.emoji}</span>
+                        <div>
+                          <span className="text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-white block">
+                            {dish.name}
+                          </span>
+                          <span className="text-[10px] font-semibold text-zinc-500 dark:text-slate-400">
+                            ⏰ Eng zo‘r vaqti: {dish.bestTime}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-extrabold shrink-0">
+                        {dish.priceRange}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-600 dark:text-slate-300 leading-snug">
+                      {dish.description}
+                    </p>
+                    <p className="text-[11px] text-amber-900 dark:text-amber-300 font-medium">
+                      💡 <b>Sirli maslahat:</b> {dish.secretTip}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* C2. 📸 Eng Chiroyli Kadr Nuqtalari (Photo Spots) */}
           <div className="space-y-2.5">
