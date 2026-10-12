@@ -8,6 +8,7 @@ import { NearMeRadar } from '../components/NearMeRadar';
 import { AiRouteFinder } from '../components/AiRouteFinder';
 import { SpinWheelModal } from '../components/SpinWheelModal';
 import { PassportModal } from '../components/PassportModal';
+import { SafetySosModal } from '../components/SafetySosModal';
 import { LiveWeatherAdvisor } from '../components/LiveWeatherAdvisor';
 import { LongTripDetailModal } from '../components/LongTripDetailModal';
 import { LongTripItem } from '../data/longTrips';
@@ -33,9 +34,10 @@ export default function Home() {
   const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
   const [moodRevision, setMoodRevision] = useState<number>(0);
 
-  // Yangi Modallar: Omad Barabani, Sayohat Pasporti va Ruletkadan tanlangan Uzoq Safar
+  // Yangi Modallar: Omad Barabani, Sayohat Pasporti, SOS va Ruletkadan tanlangan Uzoq Safar
   const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showPassport, setShowPassport] = useState(false);
+  const [showSos, setShowSos] = useState(false);
   const [wheelSelectedTrip, setWheelSelectedTrip] = useState<LongTripItem | null>(null);
 
   // Yuqori tablar scroll ko'rsatkichi uchun state va ref
@@ -274,6 +276,7 @@ export default function Home() {
         onToggleTheme={toggleTheme}
         onSurpriseClick={() => setShowSpinWheel(true)}
         onOpenPassport={() => setShowPassport(true)}
+        onOpenSos={() => setShowSos(true)}
         onReset={handleReset}
         musicMood={musicMood}
         moodRevision={moodRevision}
@@ -505,6 +508,12 @@ export default function Home() {
       <PassportModal
         isOpen={showPassport}
         onClose={() => setShowPassport(false)}
+      />
+
+      {/* 🚨 Safar Xavfsizligi (SOS & Yo'l Yordami) Modali */}
+      <SafetySosModal
+        isOpen={showSos}
+        onClose={() => setShowSos(false)}
       />
 
       {/* ⛰️ Barabandan tushgan Uzoq Safar pasporti */}

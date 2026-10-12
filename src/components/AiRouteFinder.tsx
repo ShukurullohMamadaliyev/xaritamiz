@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Sparkles,
   Send,
@@ -12,7 +12,9 @@ import {
   Moon,
   CloudRain,
   Mountain,
-  Compass
+  Compass,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { RoutePlan, RouteStop } from '../types';
 import { LOCATIONS_DATABASE } from '../data/locations';
@@ -32,6 +34,86 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Voice AI (Ovozli Qidiruv) state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<'uz-UZ' | 'ru-RU'>('uz-UZ');
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
+
+  const handleToggleVoice = () => {
+    triggerHaptic('medium');
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      setIsListening(false);
+      return;
+    }
+
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setErrorMessage(
+        'Brauzeringizda ovozli kiritish qo‘llab-quvvatlanmaydi (Chrome yoki Telegram ichida sinab ko‘ring).'
+      );
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = voiceLang;
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setErrorMessage(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript.trim()) {
+          setPromptText(transcript.trim());
+          onMoodChange?.(detectMoodFromText(transcript.trim()));
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      setIsListening(false);
+    }
+  };
 
   const quickIdeas: { label: string; prompt: string; icon: React.ReactNode }[] = [
     {
@@ -206,31 +288,88 @@ export const AiRouteFinder: React.FC<AiRouteFinderProps> = ({
           <span>Toshkent & 12 Viloyat Yo‘lboshchingiz</span>
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white leading-tight">
-          Xayolingizdagi hordiqni yozing
+          Xayolingizdagi hordiqni yozing yoki ayting 🎙️
         </h1>
         <p className="text-sm text-zinc-500 dark:text-slate-400 max-w-md mx-auto">
           Toshkent bo‘ylab oqshom rejasini yoki 12 viloyat bo‘ylab uzoq safar (tog‘, sharshara,
-          soy, ko‘l) istagingizni yozing — Xaritamiz eng mos variantlarni chiqarib beradi.
+          soy, ko‘l) istagingizni yozing yoxud mikrofonni bosib ovozda ayting!
         </p>
       </div>
 
       {/* Input va So'rov Formasi */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="relative rounded-xl bg-zinc-50/70 dark:bg-slate-800/50 border border-zinc-200/80 dark:border-slate-700 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all p-3">
+          <div
+            className={`relative rounded-xl bg-zinc-50/70 dark:bg-slate-800/50 border transition-all p-3 ${
+              isListening
+                ? 'border-rose-500 ring-4 ring-rose-500/15'
+                : 'border-zinc-200/80 dark:border-slate-700 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10'
+            }`}
+          >
+            {isListening && (
+              <div className="mb-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-bold animate-pulse">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+                  🎙️ Eshitilmoqda... Istagingizni bemalol gapiring!
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleVoice}
+                  className="underline text-[11px] cursor-pointer"
+                >
+                  To‘xtatish
+                </button>
+              </div>
+            )}
+
             <textarea
               rows={3}
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              placeholder="Masalan: Uzoq safarlarga sharsharali, soyli va tog‘li joylardan 4 ta variant chiqarib ber... yoki: Qizim bilan qahva ichib sokin suhbatlashadigan joy kerak..."
+              placeholder="Masalan: Do‘stlar bilan 200 ming so‘mga soy bo‘yida o‘tiradigan joy topib ber... yoki: Uzoq safarga sharsharali va tog‘li 4 ta joy ko‘rsat..."
               className="w-full bg-transparent text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none resize-none transition leading-relaxed"
               disabled={isLoading}
             />
 
-            <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-zinc-200/60 dark:border-slate-700/50">
-              <span className="text-[11px] text-zinc-400 font-medium">
-                120+ Toshkent + 40 ta Uzoq safar + Kunlik Avto-Bot
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 mt-1 border-t border-zinc-200/60 dark:border-slate-700/50">
+              {/* Ovozli qidiruv (Voice AI) boshqaruvi */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleToggleVoice}
+                  disabled={isLoading}
+                  className={`py-1.5 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                    isListening
+                      ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30 animate-pulse'
+                      : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60'
+                  }`}
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="w-3.5 h-3.5" />
+                      <span>To‘xtatish</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>🎙️ Ovozda aytish</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setVoiceLang((prev) => (prev === 'uz-UZ' ? 'ru-RU' : 'uz-UZ'));
+                  }}
+                  title="Ovoz tili: O‘zbekcha / Ruscha"
+                  className="py-1.5 px-2 rounded-lg bg-zinc-200/60 dark:bg-slate-700/60 text-[10px] font-bold text-zinc-600 dark:text-slate-300 cursor-pointer"
+                >
+                  {voiceLang === 'uz-UZ' ? '🇺🇿 O‘z' : '🇷🇺 Ру'}
+                </button>
+              </div>
+
               <button
                 type="submit"
                 disabled={isLoading || !promptText.trim()}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Moon, Sun, Dices, Trophy } from 'lucide-react';
+import { Moon, Sun, Dices, Trophy, ShieldAlert } from 'lucide-react';
 import { triggerHaptic } from '../lib/utils';
 import { MoodMusicPlayer } from './MoodMusicPlayer';
 import { MusicMood } from '../lib/musicMood';
@@ -12,6 +12,7 @@ interface NavbarProps {
   onToggleTheme: () => void;
   onSurpriseClick: () => void;
   onOpenPassport?: () => void;
+  onOpenSos?: () => void;
   onReset: () => void;
   musicMood?: MusicMood;
   moodRevision?: number;
@@ -22,6 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleTheme,
   onSurpriseClick,
   onOpenPassport,
+  onOpenSos,
   onReset,
   musicMood = 'welcome',
   moodRevision = 0
@@ -73,9 +75,24 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Kayfiyat Musiqasi Pleyeri */}
           <MoodMusicPlayer mood={musicMood} moodRevision={moodRevision} />
+
+          {/* SOS & Safar Xavfsizligi Button */}
+          {onOpenSos && (
+            <button
+              onClick={() => {
+                triggerHaptic('medium');
+                onOpenSos();
+              }}
+              title="Safar Xavfsizligi, SOS (1050) va Zapravkalar"
+              className="flex items-center gap-1 text-xs font-extrabold px-2 sm:px-2.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 transition active:scale-95 shadow-2xs cursor-pointer"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+              <span className="text-[11px]">SOS</span>
+            </button>
+          )}
 
           {/* Sayohat Pasporti Button */}
           {onOpenPassport && (
@@ -85,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenPassport();
               }}
               title="Sayohat Pasporti va Unvonlar"
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/50 transition active:scale-95 shadow-2xs cursor-pointer"
+              className="flex items-center gap-1 text-xs font-semibold px-2 sm:px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/50 transition active:scale-95 shadow-2xs cursor-pointer"
             >
               <Trophy className="w-3.5 h-3.5 text-amber-500" />
               <span className="hidden md:inline">Pasport</span>
@@ -104,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onSurpriseClick();
             }}
             title="Omad Barabani (Tasodifiy joy yoki marshrut)"
-            className="flex items-center gap-1.5 text-xs font-semibold px-2.5 sm:px-3.5 py-1.5 rounded-full bg-white hover:bg-emerald-50 dark:bg-slate-900 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 transition active:scale-95 shadow-xs cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-full bg-white hover:bg-emerald-50 dark:bg-slate-900 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 transition active:scale-95 shadow-xs cursor-pointer"
           >
             <Dices className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span className="hidden sm:inline">🎡 Baraban</span>

@@ -30,12 +30,14 @@ import {
   Camera,
   Backpack,
   Send,
-  Trophy
+  Trophy,
+  ShieldAlert
 } from 'lucide-react';
 import { LongTripItem, longTripToLocationItem } from '../data/longTrips';
 import { LocationItem } from '../types';
 import { triggerHaptic } from '../lib/utils';
 import { LiveWeatherAdvisor } from './LiveWeatherAdvisor';
+import { SafetySosModal } from './SafetySosModal';
 import {
   ChecklistItem,
   getPhotoSpotsForTrip,
@@ -69,8 +71,9 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [newCheckItem, setNewCheckItem] = useState('');
 
-  // Visited Passport state
+  // Visited Passport & SOS state
   const [visited, setVisited] = useState(false);
+  const [showSos, setShowSos] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -727,19 +730,33 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
               })}
             </div>
 
-            {/* Mobil Aloqa va Internet */}
-            <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-slate-800/60 border border-zinc-200/70 dark:border-slate-700/70 flex items-center gap-2.5 text-xs">
-              <div className="p-2 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 shrink-0">
-                <Wifi className="w-4 h-4" />
+            {/* Mobil Aloqa va Internet + SOS Qalqoni */}
+            <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-slate-800/60 border border-zinc-200/70 dark:border-slate-700/70 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 shrink-0">
+                  <Wifi className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                    Mobil Aloqa, Internet (4G) & Bankomatlar:
+                  </span>
+                  <p className="text-xs font-medium text-zinc-800 dark:text-slate-200">
+                    {trip.nearby.connectivity}
+                  </p>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
-                  Mobil Aloqa, Internet (4G) & Bankomatlar:
-                </span>
-                <p className="text-xs font-medium text-zinc-800 dark:text-slate-200">
-                  {trip.nearby.connectivity}
-                </p>
-              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  setShowSos(true);
+                }}
+                className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                <span>🚨 SOS, Zapravka & Yo‘l Yordami</span>
+              </button>
             </div>
           </div>
 
@@ -798,6 +815,15 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* SOS & Yo'l Yordami Modali (shu maskan koordinatalari bilan) */}
+      <SafetySosModal
+        isOpen={showSos}
+        onClose={() => setShowSos(false)}
+        defaultLat={trip.lat}
+        defaultLng={trip.lng}
+        defaultLocationName={trip.title}
+      />
     </div>
   );
 
