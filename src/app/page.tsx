@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from '../components/Navbar';
 import { QuizFilter } from '../components/QuizFilter';
 import { RouteResult } from '../components/RouteResult';
@@ -19,7 +19,7 @@ import {
 import { generateRoute, generateSurpriseRoute, swapStopInRoute } from '../lib/routeGenerator';
 import { triggerHaptic } from '../lib/utils';
 import { detectMoodFromCategory, detectMoodFromFilter, detectMoodFromRoute, MusicMood } from '../lib/musicMood';
-import { Sparkles, Compass, MapPin, ArrowRight, Trash2, Bot, SlidersHorizontal, Mountain } from 'lucide-react';
+import { Sparkles, Compass, MapPin, ArrowRight, Trash2, Bot, SlidersHorizontal, Mountain, ChevronRight, ChevronLeft } from 'lucide-react';
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
@@ -27,6 +27,53 @@ export default function Home() {
   const [currentRoute, setCurrentRoute] = useState<RoutePlan | null>(null);
   const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
   const [moodRevision, setMoodRevision] = useState<number>(0);
+
+  // Yuqori tablar scroll ko'rsatkichi uchun state va ref
+  const tabsScrollRef = useRef<HTMLDivElement | null>(null);
+  const longTripsBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [hasSeenLongTrips, setHasSeenLongTrips] = useState(false);
+
+  const updateTabsScrollState = () => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(el.scrollLeft > 8);
+    setCanScrollRight(maxScroll > 6 && el.scrollLeft < maxScroll - 8);
+  };
+
+  // Kirganda foydalanuvchiga o'ng tomonda "Uzoq Safarlar" borligini bildirish uchun yumshoq "peek" animatsiyasi
+  useEffect(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    updateTabsScrollState();
+
+    const handleResize = () => updateTabsScrollState();
+    window.addEventListener('resize', handleResize);
+
+    // 700ms dan keyin o'ngga sal surib ko'rsatib, keyin qaytaramiz
+    const peekForwardTimer = setTimeout(() => {
+      if (!tabsScrollRef.current) return;
+      const maxScroll = tabsScrollRef.current.scrollWidth - tabsScrollRef.current.clientWidth;
+      if (maxScroll > 10) {
+        tabsScrollRef.current.scrollTo({ left: maxScroll, behavior: 'smooth' });
+      }
+    }, 700);
+
+    const peekBackTimer = setTimeout(() => {
+      if (!tabsScrollRef.current) return;
+      if (activeTab === 'ai' || activeTab === 'generator') {
+        tabsScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+      }
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(peekForwardTimer);
+      clearTimeout(peekBackTimer);
+    };
+  }, []);
 
   const handleMoodChange = (nextMood: MusicMood) => {
     setMusicMood(nextMood);
@@ -235,78 +282,158 @@ export default function Home() {
         ) : (
           <div className="space-y-6">
             
-            {/* 4 Rejimli Segmented Control Tab — O'ngga scroll bo'ladigan */}
-            <div className="bg-zinc-200/60 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar border border-zinc-200/50 dark:border-slate-700/60 backdrop-blur-md max-w-xl mx-auto shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-              
-              {/* Tab 1: Erkin Istak */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('light');
-                  setActiveTab('ai');
-                }}
-                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'ai'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
-                }`}
-              >
-                <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'ai' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
-                <span>Erkin Istak ✨</span>
-              </button>
+            {/* 4 Rejimli Segmented Control Tab — O'ngga scroll bo'ladigan + Vizual ko'rsatkichlar */}
+            <div className="max-w-xl mx-auto space-y-1.5">
+              <div className="relative">
+                {/* Chapga qaytish ko'rsatkichi (o'ngga scroll qilinganda chiqadi) */}
+                {canScrollLeft && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      tabsScrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+                    }}
+                    aria-label="Chapga surish"
+                    className="sm:hidden absolute left-0 top-0 bottom-0 z-10 pl-1 pr-2.5 flex items-center bg-gradient-to-r from-zinc-200 via-zinc-200/90 to-transparent dark:from-slate-800 dark:via-slate-800/90 rounded-l-2xl text-zinc-700 dark:text-slate-200"
+                  >
+                    <span className="w-6 h-6 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-zinc-200/80 dark:border-slate-700 flex items-center justify-center">
+                      <ChevronLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </span>
+                  </button>
+                )}
 
-              {/* Tab 2: 4 Bosqichli Tezkor Filtr */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('light');
-                  setActiveTab('generator');
-                }}
-                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'generator'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
-                }`}
-              >
-                <SlidersHorizontal className={`w-3.5 h-3.5 ${activeTab === 'generator' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
-                <span>Tezkor Filtr</span>
-              </button>
+                <div
+                  ref={tabsScrollRef}
+                  onScroll={updateTabsScrollState}
+                  className="bg-zinc-200/60 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar border border-zinc-200/50 dark:border-slate-700/60 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.06)] scroll-smooth"
+                >
+                  {/* Tab 1: Erkin Istak */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      triggerHaptic('light');
+                      setActiveTab('ai');
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
+                    className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      activeTab === 'ai'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
+                        : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
+                    }`}
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'ai' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
+                    <span>Erkin Istak ✨</span>
+                  </button>
 
-              {/* Tab 3: Menga Yaqin Joylar */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('light');
-                  setActiveTab('radar');
-                }}
-                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'radar'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
-                }`}
-              >
-                <Compass className={`w-3.5 h-3.5 ${activeTab === 'radar' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
-                <span>Yaqin Joylar</span>
-              </button>
+                  {/* Tab 2: 4 Bosqichli Tezkor Filtr */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      triggerHaptic('light');
+                      setActiveTab('generator');
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
+                    className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      activeTab === 'generator'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
+                        : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
+                    }`}
+                  >
+                    <SlidersHorizontal className={`w-3.5 h-3.5 ${activeTab === 'generator' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
+                    <span>Tezkor Filtr</span>
+                  </button>
 
-              {/* Tab 4: Uzoq Safarlar (12 viloyat) */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('medium');
-                  setActiveTab('long_trips');
-                  handleMoodChange('quiet_nature');
-                }}
-                className={`shrink-0 whitespace-nowrap flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'long_trips'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
-                    : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
-                }`}
-              >
-                <Mountain className={`w-3.5 h-3.5 ${activeTab === 'long_trips' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
-                <span>Uzoq Safarlar</span>
-              </button>
+                  {/* Tab 3: Menga Yaqin Joylar */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      triggerHaptic('light');
+                      setActiveTab('radar');
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
+                    className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      activeTab === 'radar'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
+                        : 'text-zinc-600 hover:text-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
+                    }`}
+                  >
+                    <Compass className={`w-3.5 h-3.5 ${activeTab === 'radar' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`} />
+                    <span>Yaqin Joylar</span>
+                  </button>
 
+                  {/* Tab 4: Uzoq Safarlar (12 viloyat) */}
+                  <button
+                    ref={longTripsBtnRef}
+                    type="button"
+                    onClick={(e) => {
+                      triggerHaptic('medium');
+                      setActiveTab('long_trips');
+                      setHasSeenLongTrips(true);
+                      handleMoodChange('quiet_nature');
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
+                    className={`shrink-0 whitespace-nowrap flex-1 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer relative ${
+                      activeTab === 'long_trips'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-zinc-100/80 dark:border-white/[0.06]'
+                        : 'text-zinc-700 hover:text-zinc-900 dark:text-gray-300 dark:hover:text-white font-semibold'
+                    }`}
+                  >
+                    <Mountain className={`w-3.5 h-3.5 ${activeTab === 'long_trips' ? 'text-emerald-600 dark:text-emerald-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                    <span>Uzoq Safarlar</span>
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300 leading-none">
+                      12 vil.
+                    </span>
+                  </button>
+                </div>
+
+                {/* O'ng tomonda Uzoq Safarlar borligini bildiruvchi suzuvchi tugma (mobil uchun) */}
+                {canScrollRight && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('medium');
+                      const el = tabsScrollRef.current;
+                      if (el) {
+                        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+                      }
+                      setActiveTab('long_trips');
+                      setHasSeenLongTrips(true);
+                      handleMoodChange('quiet_nature');
+                    }}
+                    aria-label="Uzoq Safarlar bo'limiga o'tish"
+                    className="sm:hidden absolute right-0 top-0 bottom-0 z-10 pl-3 pr-1 flex items-center bg-gradient-to-l from-zinc-200 via-zinc-200/95 to-transparent dark:from-slate-800 dark:via-slate-800/95 rounded-r-2xl cursor-pointer"
+                  >
+                    <span className="flex items-center gap-0.5 px-2 py-1 rounded-xl bg-emerald-600 text-white text-[10px] font-bold shadow-md shadow-emerald-600/25 animate-pulse">
+                      <Mountain className="w-3 h-3" />
+                      <ChevronRight className="w-3.5 h-3.5 -ml-0.5" />
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* Kichik ishora yozuvi — foydalanuvchi o'ngda "Uzoq Safarlar" borligini darhol bilishi uchun */}
+              {activeTab !== 'long_trips' && (
+                <div className="flex justify-end px-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('medium');
+                      const el = tabsScrollRef.current;
+                      if (el) {
+                        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+                      }
+                      setActiveTab('long_trips');
+                      setHasSeenLongTrips(true);
+                      handleMoodChange('quiet_nature');
+                    }}
+                    className="group inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200/70 dark:border-emerald-800/60 px-2.5 py-1 rounded-full shadow-2xs transition cursor-pointer"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span>⛰️ 12 viloyat bo‘ylab <b>Uzoq Safarlar</b> — o‘ngga suring yoki bosing</span>
+                    <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
 
