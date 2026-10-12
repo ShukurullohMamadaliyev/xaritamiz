@@ -13,9 +13,9 @@ export const metadata: Metadata = {
     images: ["/logo-full.jpg"]
   },
   icons: {
-    icon: "/logo-icon.png",
-    shortcut: "/logo-icon.png",
-    apple: "/logo-icon.png",
+    icon: "/logo-icon.png?v=3",
+    shortcut: "/logo-icon.png?v=3",
+    apple: "/logo-icon.png?v=3",
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -45,8 +45,8 @@ export default function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
-        <link rel="icon" href="/logo-icon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/logo-icon.png" />
+        <link rel="icon" href="/logo-icon.png?v=3" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo-icon.png?v=3" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

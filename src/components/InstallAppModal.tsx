@@ -123,13 +123,11 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
         {/* Yuqori qism: Ilova ikonkasi ko'rinishi va Yopish */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-[#071510] border-2 border-emerald-400/50 p-1.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center shrink-0">
-              <img
-                src="/logo-icon.png"
-                alt="Xaritamiz"
-                className="w-full h-full object-contain rounded-xl"
-              />
-            </div>
+            <img
+              src="/logo-icon.png?v=3"
+              alt="Xaritamiz"
+              className="w-15 h-15 object-contain drop-shadow-[0_6px_16px_rgba(16,185,129,0.3)] shrink-0"
+            />
             <div>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-extrabold uppercase tracking-wider mb-1">
                 <Sparkles className="w-3 h-3" />

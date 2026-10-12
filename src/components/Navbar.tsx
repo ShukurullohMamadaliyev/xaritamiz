@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="flex items-center gap-1.5 sm:gap-2.5 text-left group transition-transform active:scale-95 cursor-pointer shrink-0 min-w-0"
         >
           <img
-            src="/logo.png?v=2"
+            src="/logo.png?v=3"
             alt="Xaritamiz"
             width={40}
             height={40}
