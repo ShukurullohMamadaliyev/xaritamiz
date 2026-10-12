@@ -13,7 +13,8 @@ import {
   Share2, 
   Sparkles,
   Dices,
-  CheckCircle2
+  CheckCircle2,
+  Calculator
 } from 'lucide-react';
 import { RoutePlan } from '../types';
 import { LocationCard } from './LocationCard';
@@ -37,7 +38,16 @@ export const RouteResult: React.FC<RouteResultProps> = ({
 }) => {
   const [showStoryModal, setShowStoryModal] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
-  const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [splitPeople, setSplitPeople] = useState<number>(3);
+  const [includeTaxi, setIncludeTaxi] = useState<boolean>(true);
+
+  const basePerPerson =
+    route.numericTotalCost ||
+    route.stops.reduce((acc, s) => acc + (s.location.estimatedPrice || 0), 0) ||
+    120000;
+  const totalTaxiCost = includeTaxi ? route.stops.length * 22000 : 0;
+  const totalGroupSom = basePerPerson * splitPeople + totalTaxiCost;
+  const perPersonSom = Math.round(totalGroupSom / splitPeople / 5000) * 5000;
 
   // Confetti trigger
   React.useEffect(() => {
@@ -140,6 +150,62 @@ export const RouteResult: React.FC<RouteResultProps> = ({
           </div>
         </div>
 
+        {/* 🧮 Do'stlar bilan Xarajat Kalkulyatori (Split Bill) */}
+        <div className="p-3.5 rounded-2xl bg-zinc-50/90 dark:bg-slate-800/60 border border-zinc-200/70 dark:border-slate-700/70 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-extrabold text-zinc-900 dark:text-white flex items-center gap-1.5">
+              <Calculator className="w-4 h-4 text-emerald-600" />
+              <span>🧮 Do‘stlar bilan Xarajat Kalkulyatori:</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setIncludeTaxi((prev) => !prev);
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+                includeTaxi
+                  ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                  : 'bg-white dark:bg-slate-900 text-zinc-500 border-zinc-200 dark:border-slate-700'
+              }`}
+            >
+              🚕 O‘rtada Taksi: {includeTaxi ? 'Qo‘shilgan ✓' : 'Qo‘shilmagan'}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5, 6, 8].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setSplitPeople(n);
+                  }}
+                  className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    splitPeople === n
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-slate-900 text-zinc-600 dark:text-slate-300 border border-zinc-200 dark:border-slate-700'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <span className="text-[11px] text-zinc-500 ml-1">kishi</span>
+            </div>
+
+            <div className="text-right">
+              <span className="text-[10px] text-zinc-400 uppercase font-bold block">
+                Kishi boshiga ulush:
+              </span>
+              <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                ~{perPersonSom.toLocaleString('uz-UZ')} so‘m
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Claude AI Izohi & Tavsiyasi (agar mavjud bo'lsa) */}
         {route.aiComment && (

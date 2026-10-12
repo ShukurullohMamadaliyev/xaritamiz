@@ -6,6 +6,11 @@ import { QuizFilter } from '../components/QuizFilter';
 import { RouteResult } from '../components/RouteResult';
 import { NearMeRadar } from '../components/NearMeRadar';
 import { AiRouteFinder } from '../components/AiRouteFinder';
+import { SpinWheelModal } from '../components/SpinWheelModal';
+import { PassportModal } from '../components/PassportModal';
+import { LiveWeatherAdvisor } from '../components/LiveWeatherAdvisor';
+import { LongTripDetailModal } from '../components/LongTripDetailModal';
+import { LongTripItem } from '../data/longTrips';
 import { 
   RoutePlan, 
   FilterState, 
@@ -27,6 +32,11 @@ export default function Home() {
   const [currentRoute, setCurrentRoute] = useState<RoutePlan | null>(null);
   const [musicMood, setMusicMood] = useState<MusicMood>('welcome');
   const [moodRevision, setMoodRevision] = useState<number>(0);
+
+  // Yangi Modallar: Omad Barabani, Sayohat Pasporti va Ruletkadan tanlangan Uzoq Safar
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [showPassport, setShowPassport] = useState(false);
+  const [wheelSelectedTrip, setWheelSelectedTrip] = useState<LongTripItem | null>(null);
 
   // Yuqori tablar scroll ko'rsatkichi uchun state va ref
   const tabsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -262,7 +272,8 @@ export default function Home() {
       <Navbar
         darkMode={darkMode}
         onToggleTheme={toggleTheme}
-        onSurpriseClick={handleSurprise}
+        onSurpriseClick={() => setShowSpinWheel(true)}
+        onOpenPassport={() => setShowPassport(true)}
         onReset={handleReset}
         musicMood={musicMood}
         moodRevision={moodRevision}
@@ -280,7 +291,7 @@ export default function Home() {
             onSwapStop={handleSwapStop}
           />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             
             {/* 4 Rejimli Segmented Control Tab — O'ngga scroll bo'ladigan + Vizual ko'rsatkichlar */}
             <div className="max-w-xl mx-auto space-y-1.5">
@@ -436,6 +447,13 @@ export default function Home() {
               )}
             </div>
 
+            {/* 🌤️ Jonli Ob-havo va Oltin Soat (Golden Hour) Maslahatchisi */}
+            <LiveWeatherAdvisor
+              lat={41.3111}
+              lng={69.2797}
+              locationName="Toshkent"
+              compact
+            />
 
             {/* Faol rejim kontenti */}
             {activeTab === 'ai' ? (
@@ -450,7 +468,7 @@ export default function Home() {
             ) : activeTab === 'generator' ? (
               <QuizFilter
                 onGenerate={handleGenerate}
-                onSurprise={handleSurprise}
+                onSurprise={() => setShowSpinWheel(true)}
                 initialFilters={lastFilters}
                 onMoodChange={handleMoodChange}
               />
@@ -467,6 +485,37 @@ export default function Home() {
         )}
 
       </main>
+
+      {/* 🎡 Omad Barabani (Ruletka) Modali */}
+      <SpinWheelModal
+        isOpen={showSpinWheel}
+        onClose={() => setShowSpinWheel(false)}
+        onSelectTashkentPlace={(place) => {
+          handleToggleSavedStop(place);
+          setActiveTab('radar');
+        }}
+        onSelectLongTrip={(trip) => {
+          setActiveTab('long_trips');
+          setWheelSelectedTrip(trip);
+        }}
+        onSurpriseFullRoute={handleSurprise}
+      />
+
+      {/* 🏆 Sayohat Pasporti Modali */}
+      <PassportModal
+        isOpen={showPassport}
+        onClose={() => setShowPassport(false)}
+      />
+
+      {/* ⛰️ Barabandan tushgan Uzoq Safar pasporti */}
+      <LongTripDetailModal
+        trip={wheelSelectedTrip}
+        onClose={() => setWheelSelectedTrip(null)}
+        onAddToRoute={(loc) => handleToggleSavedStop(loc)}
+        isAddedToRoute={
+          wheelSelectedTrip ? savedStops.some((s) => s.id === wheelSelectedTrip.id) : false
+        }
+      />
 
       {/* Near Me yoki Uzoq Safarlar rejimida tanlangan bekatlar uchun Floating Action Banner */}
       {!currentRoute && (activeTab === 'radar' || activeTab === 'long_trips') && savedStops.length > 0 && (
@@ -510,7 +559,7 @@ export default function Home() {
       {/* Futer */}
       <footer className="w-full border-t border-slate-200/80 dark:border-slate-800/80 py-6 text-center text-xs text-slate-500 dark:text-slate-500 mt-auto">
         <div className="max-w-3xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; 2026 "Xaritamiz" — Toshkent shahar dam olish marshrutlari</span>
+          <span>&copy; 2026 "Xaritamiz" — Toshkent & O‘zbekiston dam olish marshrutlari</span>
           <span className="text-[11px] text-slate-400">Telegram WebApp (TMA) hamkorligida</span>
         </div>
       </footer>

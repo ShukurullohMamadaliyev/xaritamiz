@@ -25,11 +25,25 @@ import {
   Plus,
   Check,
   Navigation,
-  Users
+  Users,
+  Calculator,
+  Camera,
+  Backpack,
+  Send,
+  Trophy
 } from 'lucide-react';
 import { LongTripItem, longTripToLocationItem } from '../data/longTrips';
 import { LocationItem } from '../types';
 import { triggerHaptic } from '../lib/utils';
+import { LiveWeatherAdvisor } from './LiveWeatherAdvisor';
+import {
+  ChecklistItem,
+  getPhotoSpotsForTrip,
+  getSmartChecklistForTrip,
+  isPlaceVisited,
+  saveChecklistForTrip,
+  toggleVisitedId
+} from '../lib/travelPassport';
 
 interface LongTripDetailModalProps {
   trip: LongTripItem | null;
@@ -46,12 +60,27 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
 
+  // Split Bill Calculator state
+  const [peopleCount, setPeopleCount] = useState<number>(4);
+  const [splitTransport, setSplitTransport] = useState<'shared_car' | 'public'>('shared_car');
+  const [withHotel, setWithHotel] = useState<boolean>(false);
+
+  // Checklist state
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [newCheckItem, setNewCheckItem] = useState('');
+
+  // Visited Passport state
+  const [visited, setVisited] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
     if (!trip) return;
+    setChecklist(getSmartChecklistForTrip(trip));
+    setVisited(isPlaceVisited(trip.id));
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
@@ -66,6 +95,67 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
 
   const getNearbyMapSearchUrl = (query: string) =>
     `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${trip.lat},${trip.lng},12z`;
+
+  // Split Bill calculation
+  // Shared car round-trip fuel + road cost based on distance (~1200 so'm per km roundtrip)
+  const roundTripKm = trip.distanceFromTashkentKm * 2;
+  const totalCarFuelCost = Math.max(120000, Math.round((roundTripKm * 1300) / 10000) * 10000);
+  const perPersonPublicTransport = Math.round((trip.estimatedPrice * 0.45) / 10000) * 10000;
+  const perPersonFoodAndEntry = Math.round((trip.estimatedPrice * 0.55) / 10000) * 10000;
+  const perPersonHotelNight = withHotel ? 200000 : 0;
+
+  const totalGroupCost =
+    splitTransport === 'shared_car'
+      ? totalCarFuelCost + (perPersonFoodAndEntry + perPersonHotelNight) * peopleCount
+      : (perPersonPublicTransport + perPersonFoodAndEntry + perPersonHotelNight) * peopleCount;
+
+  const perPersonSplitCost = Math.round(totalGroupCost / peopleCount / 5000) * 5000;
+
+  const handleShareSplitToTelegram = () => {
+    triggerHaptic('success');
+    const text = [
+      `⛰️ *${trip.title}* (${trip.region}) — Do‘stlar bilan safar hisob-kitobi!`,
+      `👥 Ishtirokchilar: *${peopleCount} kishi*`,
+      `🚗 Transport: *${splitTransport === 'shared_car' ? 'Mashinada (benzin o‘rtada)' : 'Poyezd / Avtobus / Taksi'}*`,
+      `🏨 Yotoq: *${withHotel ? '1 kecha tunab qolish bilan' : '1 kunlik (tunashsiz)'}*`,
+      `💰 Jami o‘rtada: *${totalGroupCost.toLocaleString('uz-UZ')} so‘m*`,
+      `👉 *Kishi boshiga:* *${perPersonSplitCost.toLocaleString('uz-UZ')} so‘mdan!*`,
+      `📍 Masofa: Toshkentdan ~${trip.distanceFromTashkentKm} km (${trip.travelTimeText})`
+    ].join('\n');
+
+    const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleToggleChecklistItem = (id: string) => {
+    triggerHaptic('light');
+    const updated = checklist.map((item) =>
+      item.id === id ? { ...item, checked: !item.checked } : item
+    );
+    setChecklist(updated);
+    saveChecklistForTrip(trip.id, updated);
+  };
+
+  const handleAddCustomCheckItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newCheckItem.trim();
+    if (!trimmed) return;
+    triggerHaptic('light');
+    const newItem: ChecklistItem = {
+      id: `custom-${Date.now()}`,
+      label: trimmed,
+      category: 'comfort',
+      checked: false
+    };
+    const updated = [...checklist, newItem];
+    setChecklist(updated);
+    saveChecklistForTrip(trip.id, updated);
+    setNewCheckItem('');
+  };
+
+  const checkedCount = checklist.filter((i) => i.checked).length;
+  const checklistPct = checklist.length > 0 ? Math.round((checkedCount / checklist.length) * 100) : 0;
+  const photoSpots = getPhotoSpotsForTrip(trip);
 
   const transportModes = [
     {
@@ -167,10 +257,22 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
             <span className="px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-emerald-200 text-[11px] font-semibold border border-white/20">
               {trip.natureLabel}
             </span>
-            <span className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[11px] font-medium border border-white/20 flex items-center gap-1">
-              <Users className="w-3 h-3 text-amber-300" />
-              <span>{trip.crowdLevel}</span>
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('success');
+                toggleVisitedId(trip.id);
+                setVisited((prev) => !prev);
+              }}
+              className={`px-2.5 py-1 rounded-full backdrop-blur-md text-[11px] font-bold border flex items-center gap-1 transition cursor-pointer ${
+                visited
+                  ? 'bg-amber-500 text-white border-amber-300 shadow-sm'
+                  : 'bg-black/50 text-white border-white/25 hover:bg-black/70'
+              }`}
+            >
+              <Trophy className="w-3 h-3" />
+              <span>{visited ? 'Pasportda: Bordim ✓' : 'Bordim deb belgilash'}</span>
+            </button>
           </div>
 
           {/* Pastki Sarlavha */}
@@ -242,6 +344,13 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
             </div>
           </div>
 
+          {/* A2. Jonli Ob-havo va Oltin Soat (Golden Hour) Maslahatchisi */}
+          <LiveWeatherAdvisor
+            lat={trip.lat}
+            lng={trip.lng}
+            locationName={trip.title}
+          />
+
           {/* B. Joy haqida va Kreativ Insayd-Maslahat */}
           <div className="space-y-2.5 bg-zinc-50/90 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-zinc-200/70 dark:border-slate-800">
             <p className="text-xs sm:text-sm text-zinc-700 dark:text-slate-200 leading-relaxed">
@@ -257,6 +366,125 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
                   {trip.creativeTip}
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* B2. Do'stlar bilan Xarajat Kalkulyatori (Split Bill) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60 dark:from-slate-800/90 dark:via-slate-900 dark:to-slate-800/80 border border-emerald-200/80 dark:border-emerald-800/50 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-900 dark:text-white flex items-center gap-1.5">
+                <Calculator className="w-4 h-4 text-emerald-600" />
+                <span>🧮 Do‘stlar bilan Xarajat Kalkulyatori (O‘rtada)</span>
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                Split Bill
+              </span>
+            </div>
+
+            {/* Odamlarni tanlash */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-600 dark:text-slate-300 font-medium">Necha kishi ketasizlar?</span>
+                <span className="font-extrabold text-emerald-700 dark:text-emerald-400">{peopleCount} kishi</span>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[1, 2, 3, 4, 5, 6, 8, 10].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPeopleCount(num);
+                    }}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      peopleCount === num
+                        ? 'bg-emerald-600 text-white shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 text-zinc-700 dark:text-slate-300 border border-zinc-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {num} {num === 1 ? 'kishi' : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Transport va Tunash tanlovi */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setSplitTransport('shared_car')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    splitTransport === 'shared_car'
+                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-2xs'
+                      : 'text-zinc-500'
+                  }`}
+                >
+                  🚗 Mashina (benzin o‘rtada)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSplitTransport('public')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    splitTransport === 'public'
+                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-2xs'
+                      : 'text-zinc-500'
+                  }`}
+                >
+                  🚆 Poyezd / Taksi
+                </button>
+              </div>
+
+              <div className="flex bg-zinc-100 dark:bg-slate-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setWithHotel(false)}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    !withHotel
+                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-2xs'
+                      : 'text-zinc-500'
+                  }`}
+                >
+                  ☀️ 1 kunlik borib-kelish
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWithHotel(true)}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    withHotel
+                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-2xs'
+                      : 'text-zinc-500'
+                  }`}
+                >
+                  🌙 Tunab qolish (+dach/otel)
+                </button>
+              </div>
+            </div>
+
+            {/* Natija va Do'stlarga ulashish */}
+            <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block">
+                  Kishi boshiga tushadigan ulush:
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-400">
+                    {perPersonSplitCost.toLocaleString('uz-UZ')} so‘m
+                  </span>
+                  <span className="text-[11px] text-zinc-500">
+                    (Jami {peopleCount} kishiga: {totalGroupCost.toLocaleString('uz-UZ')} so‘m)
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleShareSplitToTelegram}
+                className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Guruhga tashlash</span>
+              </button>
             </div>
           </div>
 
@@ -329,6 +557,105 @@ export const LongTripDetailModal: React.FC<LongTripDetailModalProps> = ({
                 );
               })}
             </div>
+          </div>
+
+          {/* C2. 📸 Eng Chiroyli Kadr Nuqtalari (Photo Spots) */}
+          <div className="space-y-2.5">
+            <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-800 dark:text-slate-100 flex items-center gap-1.5">
+              <Camera className="w-4 h-4 text-amber-500" />
+              <span>📸 Rasmga Tushish Burchaklari (Photo Spots)</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {photoSpots.map((spot, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 space-y-1.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold text-zinc-900 dark:text-white">
+                      {idx + 1}. {spot.title}
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                    ⏰ Eng zo‘r vaqt: {spot.bestTime}
+                  </p>
+                  <p className="text-[11px] text-zinc-600 dark:text-slate-300 leading-snug">
+                    💡 <b>Kadr siri:</b> {spot.angleTip}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* C3. 🎒 Interaktiv Yo'l Xaltasi (Checklist) */}
+          <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-slate-800/60 border border-zinc-200/80 dark:border-slate-700/80 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-900 dark:text-white flex items-center gap-1.5">
+                  <Backpack className="w-4 h-4 text-emerald-600" />
+                  <span>🎒 Yo‘l Xaltasi (Nimalar olish kerak?)</span>
+                </h3>
+                <p className="text-[11px] text-zinc-500 dark:text-slate-400">
+                  Safarga chiqishdan oldin tayyor narsalarni belgilab chiqing
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-extrabold">
+                {checkedCount}/{checklist.length} ({checklistPct}%)
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-slate-700 overflow-hidden">
+              <div
+                style={{ width: `${checklistPct}%` }}
+                className="h-full bg-emerald-600 transition-all duration-300 rounded-full"
+              />
+            </div>
+
+            {/* Checklist items */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {checklist.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleToggleChecklistItem(item.id)}
+                  className={`p-2.5 rounded-xl border text-left text-xs flex items-center gap-2.5 transition cursor-pointer ${
+                    item.checked
+                      ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-zinc-500 dark:text-slate-400 line-through'
+                      : 'bg-white dark:bg-slate-900 border-zinc-200/80 dark:border-slate-700 text-zinc-800 dark:text-slate-200'
+                  }`}
+                >
+                  <span
+                    className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border ${
+                      item.checked
+                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        : 'border-zinc-300 dark:border-slate-600'
+                    }`}
+                  >
+                    {item.checked && <Check className="w-3 h-3" />}
+                  </span>
+                  <span className="leading-snug">{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Add custom checklist item */}
+            <form onSubmit={handleAddCustomCheckItem} className="flex items-center gap-2 pt-1">
+              <input
+                type="text"
+                value={newCheckItem}
+                onChange={(e) => setNewCheckItem(e.target.value)}
+                placeholder="Yana nima olasiz? (masalan: Kabob sixlari...)"
+                className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                type="submit"
+                className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 cursor-pointer"
+              >
+                + Qo‘shish
+              </button>
+            </form>
           </div>
 
           {/* D. Yaqin Atrof Infratuzilmasi (Mehmonxona, Oshxona, Do'konlar, Bolnitsa) */}
